@@ -83,3 +83,13 @@
 - Generation already reads the top-30 corrections (built in Phase 3), so the loop compounds: edit → learn → next generation uses the rules.
 
 **Verified:** build passes; `voice_corrections` table + 30-cap read confirmed in Phase 3; `/voice` uses the same server-component pattern as the verified `/patterns` page. Live learn/consolidate calls need `ANTHROPIC_API_KEY` (clean 503 until set).
+
+## Phase 6 — Repeat Builder + Series View ✅ (2026-07-06)
+
+**Built** (Features 4 & 5, pure data — no AI):
+- **Repeat Builder** (Feature 4): "Repeat This Pattern" action on every script detail page links to `/log?from=<id>`. The logger server-fetches that script and pre-fills the framework combo (platform, pillar, secondary lane, emotion, hook format, story structure, series, CTA) via the existing ScriptForm `prefill` prop — title and script text stay blank. Header switches to "Rebuild From a Winner" mode.
+- **Series View** (Feature 5): `/series` groups all series-tagged scripts by Content Series, ordered chronologically, showing saves+shares / views / followers / shock score per episode, with the best-performing episode's saves+shares highlighted gold and a "win" flag. Directly answers "why did Ep 2 underperform Ep 1."
+
+**Verified with real queries:** seeded a 2-episode Stewardship Season, confirmed the Series query grouped both episodes and flagged Ep 1 (2700 saves+shares) as best over Ep 2 (1000); confirmed Repeat Builder prefill pulled the exact combo from the winning episode. Seed rows deleted — table back to 0.
+
+**Note:** found (and worked around in the test) that PostgREST bulk inserts with heterogeneous keys send NULL for omitted columns instead of applying the default — not an app issue, since ScriptForm always sends every column.

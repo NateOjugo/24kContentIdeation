@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
 import { ClipDownButton } from "@/components/ClipDownButton";
 import { LearnFromEditButton } from "@/components/LearnFromEditButton";
+import { RepeatBuilderButton } from "@/components/RepeatBuilderButton";
 import { createClient } from "@/lib/supabase/server";
 import { formatCount, type Script } from "@/lib/scripts";
 
@@ -173,6 +174,8 @@ export default async function ScriptDetail({
         {/* Actions */}
         <div className="mt-8 space-y-4 border-t border-white/8 pt-6">
           <div className="micro-label-steel">Actions</div>
+
+          <RepeatBuilderButton scriptId={s.id} />
 
           {s.original_draft_text && s.full_script_text && (
             <LearnFromEditButton scriptId={s.id} />

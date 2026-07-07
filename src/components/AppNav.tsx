@@ -7,6 +7,7 @@ const links: { href: string; label: string }[] = [
   { href: "/patterns", label: "Patterns" },
   { href: "/generate", label: "Generate" },
   { href: "/remix", label: "Remix" },
+  { href: "/series", label: "Series" },
   { href: "/voice", label: "Voice" },
 ];
 

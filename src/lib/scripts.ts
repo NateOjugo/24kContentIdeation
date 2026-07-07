@@ -83,6 +83,11 @@ export type ScriptInput = Omit<Script, "id" | "created_at" | "updated_at">;
 
 export const SHOCK_VALUE_THRESHOLD = 80;
 
+/** Saves + shares — the primary performance signal, weighted above views. */
+export function savesSharesWeight(s: Pick<Script, "saves" | "shares">): number {
+  return (s.saves ?? 0) + (s.shares ?? 0);
+}
+
 export function formatCount(n: number | null): string {
   if (n == null) return "—";
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
