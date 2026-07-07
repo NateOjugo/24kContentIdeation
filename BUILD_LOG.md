@@ -72,3 +72,14 @@
 - `/remix` UI: Paste Transcript → Extract Structure (renders the map) → Your Take + Packaging Gate → Generate Remix. Extracted hook format / structure pre-fill the gate.
 
 **Verified:** build passes; both routes return 401 unauthenticated, `/remix` redirects to /login. Same generation-call limitation as Phase 3 — the live remix call needs `ANTHROPIC_API_KEY` (returns clean 503 until set).
+
+## Phase 5 — Voice Learning Loop ✅ wired (2026-07-06)
+
+**Built** (Feature 7):
+- `/api/learn-from-edit` — diffs a script's `original_draft_text` against its `full_script_text` (Nate's final edit) and extracts concrete, repeatable voice rules (word swaps, cut structures, punctuation changes) via `claude-fable-5` structured output. Refuses vague notes; returns empty if the versions are close. Appends rules to `voice_corrections` with the source script id.
+- `/api/consolidate-voice` — the cap/consolidation job: reads all active corrections, asks Claude to merge/dedupe into a tighter set (≤30), deactivates the old rows (kept for history), inserts the consolidated set.
+- Script detail page: "Learn from Edit" card appears once a script has BOTH a draft and a final edit; a hint card appears when it only has a draft (paste the final via Edit first). "Clip This Down" card wired here too for YouTube scripts.
+- `/voice` page: the Voice Correction Log — active-rule count, over-cap warning, per-rule reinforcement badges, links back to source scripts, and the Consolidate button (highlighted gold when over the 30 cap).
+- Generation already reads the top-30 corrections (built in Phase 3), so the loop compounds: edit → learn → next generation uses the rules.
+
+**Verified:** build passes; `voice_corrections` table + 30-cap read confirmed in Phase 3; `/voice` uses the same server-component pattern as the verified `/patterns` page. Live learn/consolidate calls need `ANTHROPIC_API_KEY` (clean 503 until set).

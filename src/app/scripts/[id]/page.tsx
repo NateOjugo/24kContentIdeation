@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
+import { ClipDownButton } from "@/components/ClipDownButton";
+import { LearnFromEditButton } from "@/components/LearnFromEditButton";
 import { createClient } from "@/lib/supabase/server";
 import { formatCount, type Script } from "@/lib/scripts";
 
@@ -167,6 +169,36 @@ export default async function ScriptDetail({
             <p className="text-sm leading-relaxed whitespace-pre-wrap text-cream/90">{s.post_mortem_notes}</p>
           </div>
         )}
+
+        {/* Actions */}
+        <div className="mt-8 space-y-4 border-t border-white/8 pt-6">
+          <div className="micro-label-steel">Actions</div>
+
+          {s.original_draft_text && s.full_script_text && (
+            <LearnFromEditButton scriptId={s.id} />
+          )}
+
+          {s.original_draft_text && !s.full_script_text && (
+            <div className="accent-card p-5">
+              <div className="micro-label mb-2">Voice Learning Loop</div>
+              <p className="text-sm text-steel">
+                Paste your final edited version into Full Script Text (via Edit),
+                then a “Learn from Edit” button appears here to capture your voice
+                patterns from the diff.
+              </p>
+            </div>
+          )}
+
+          {s.platform === "YouTube" && (s.full_script_text || s.original_draft_text) && (
+            <div className="accent-card flex flex-wrap items-center justify-between gap-3 p-5">
+              <div>
+                <div className="micro-label mb-1">Clip This Down</div>
+                <p className="text-sm text-steel">Pull a Reels-format cut from this YouTube script.</p>
+              </div>
+              <ClipDownButton scriptId={s.id} />
+            </div>
+          )}
+        </div>
       </main>
     </>
   );
