@@ -17,8 +17,8 @@ import {
 } from "@/lib/scripts";
 
 type Props = {
-  script?: Script; // present = edit mode
-  prefill?: Partial<ScriptInput>; // used by the Repeat Builder later
+  script?: Script; // present = edit mode (updates in place — never a new row)
+  prefill?: Partial<ScriptInput>; // Repeat Builder
 };
 
 const EMPTY: ScriptInput = {
@@ -55,11 +55,12 @@ const EMPTY: ScriptInput = {
   post_mortem_notes: null,
 };
 
-function Section({ label, children }: { label: string; children: React.ReactNode }) {
+function Section({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <section className="accent-card p-5 sm:p-6">
-      <div className="micro-label mb-5">{label}</div>
-      <div className="space-y-4">{children}</div>
+      <div className="micro-label mb-1">{label}</div>
+      {hint && <p className="mb-4 text-xs text-steel">{hint}</p>}
+      <div className={`space-y-4 ${hint ? "" : "mt-4"}`}>{children}</div>
     </section>
   );
 }
@@ -117,6 +118,8 @@ export function ScriptForm({ script, prefill }: Props) {
       : {}),
   });
   const [saving, setSaving] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analyzed, setAnalyzed] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const isYouTube = form.platform === "YouTube";
@@ -129,22 +132,61 @@ export function ScriptForm({ script, prefill }: Props) {
 
   const num = (v: string) => (v === "" ? null : Number(v));
 
-  // Packaging Gate — cannot save without these (Feature 1)
+  // Structure Analysis — read the pasted script and auto-fill the Framework Tags.
+  async function analyze() {
+    const text = form.full_script_text?.trim();
+    if (!text) {
+      setError("Paste your script first, then analyze.");
+      return;
+    }
+    setAnalyzing(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/analyze-script", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const a = await res.json();
+      if (!res.ok) throw new Error(a.error ?? `HTTP ${res.status}`);
+      setForm((f) => ({
+        ...f,
+        platform: a.platform,
+        pillar: a.pillar,
+        pillar_secondary: a.pillar_secondary ?? null,
+        target_emotion: a.target_emotion,
+        hook_format: a.hook_format,
+        story_structure: a.platform === "YouTube" ? a.story_structure : null,
+        loop_open: a.loop_open ?? null,
+        loop_close: a.loop_close ?? null,
+        shock_value_score: a.shock_value_score ?? null,
+        re_hook_count: a.platform === "YouTube" ? a.re_hook_count ?? null : null,
+        cta_type: a.cta_type ?? null,
+        // don't clobber a title Nate already typed
+        title: f.title.trim() ? f.title : a.suggested_title ?? "",
+      }));
+      setAnalyzed(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setAnalyzing(false);
+    }
+  }
+
+  // Light review gate — the analysis fills these; you just confirm them.
   const gateErrors = useMemo(() => {
     const errs: string[] = [];
     if (!form.title.trim()) errs.push("Title");
-    if (!form.platform) errs.push("Platform");
-    if (!form.pillar) errs.push("Pillar");
-    if (!form.target_emotion) errs.push("Target Emotion");
     if (!form.hook_format) errs.push("Hook Format");
+    if (!form.target_emotion) errs.push("Target Emotion");
     if (isYouTube && !form.story_structure) errs.push("Story Structure");
     return errs;
-  }, [form.title, form.platform, form.pillar, form.target_emotion, form.hook_format, form.story_structure, isYouTube]);
+  }, [form.title, form.hook_format, form.target_emotion, form.story_structure, isYouTube]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (gateErrors.length > 0) {
-      setError(`Packaging Gate incomplete: ${gateErrors.join(", ")}`);
+      setError(`Review before saving — still needs: ${gateErrors.join(", ")}`);
       return;
     }
     setSaving(true);
@@ -153,7 +195,6 @@ export function ScriptForm({ script, prefill }: Props) {
     const payload: ScriptInput = {
       ...form,
       title: form.title.trim(),
-      // YouTube-only fields stay null on Reels
       story_structure: isYouTube ? form.story_structure : null,
       re_hook_count: isYouTube ? form.re_hook_count : null,
       dopamine_ladder_used: isYouTube ? form.dopamine_ladder_used : null,
@@ -161,6 +202,7 @@ export function ScriptForm({ script, prefill }: Props) {
     };
 
     const supabase = createClient();
+    // One entry per script: edit updates in place, never inserts a duplicate row.
     const { data, error } = script
       ? await supabase.from("scripts").update(payload).eq("id", script.id).select("id").single()
       : await supabase.from("scripts").insert(payload).select("id").single();
@@ -177,7 +219,42 @@ export function ScriptForm({ script, prefill }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <Section label="Packaging Gate — required before anything else">
+      {/* 1 — Paste the finished script */}
+      <Section
+        label={script ? "The Script" : "1 — Paste Your Finished Script"}
+        hint={
+          script
+            ? "Edit the text, then re-analyze if the structure changed. Saving updates this same entry."
+            : "Write it wherever you write (Claude chat, your Script Skill), then paste the finished text here. The dashboard reads its structure and fills the tags for you."
+        }
+      >
+        <textarea
+          rows={10}
+          className="field-input font-mono text-[13px] leading-relaxed"
+          placeholder="Paste the full script text…"
+          value={form.full_script_text ?? ""}
+          onChange={(e) => set("full_script_text", e.target.value || null)}
+        />
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={analyze}
+            disabled={analyzing || !form.full_script_text?.trim()}
+            className="rounded-[3px] bg-gold px-4 py-2.5 text-sm font-semibold text-navy-deep transition-opacity hover:opacity-90 disabled:opacity-50"
+          >
+            {analyzing ? "Reading the structure…" : analyzed ? "Re-Analyze" : "Analyze & Auto-Fill Tags"}
+          </button>
+          {analyzed && !analyzing && (
+            <span className="micro-label-steel"><span className="text-gold">Tags detected</span> — review below</span>
+          )}
+        </div>
+      </Section>
+
+      {/* 2 — Framework Tags (auto-detected, review & correct) */}
+      <Section
+        label={script ? "Framework Tags" : "2 — Framework Tags"}
+        hint="Auto-detected from the script. Correct anything the analysis got wrong."
+      >
         <Field label="Title (internal reference)" required>
           <input
             className="field-input"
@@ -244,7 +321,7 @@ export function ScriptForm({ script, prefill }: Props) {
               ))}
             </select>
           </Field>
-          <Field label="Content Series">
+          <Field label="Content Series (your call — not auto-detected)">
             <select
               className="field-input"
               value={form.content_series ?? ""}
@@ -299,9 +376,7 @@ export function ScriptForm({ script, prefill }: Props) {
               placeholder="100 people. How many haven't heard this?"
             />
             {lowShock && (
-              <p className="mt-1.5 text-xs text-gold">
-                Below 80. The system says reframe or cut.
-              </p>
+              <p className="mt-1.5 text-xs text-gold">Below 80. The system says reframe or cut.</p>
             )}
           </Field>
           <Field label="CTA Type">
@@ -346,25 +421,7 @@ export function ScriptForm({ script, prefill }: Props) {
             />
           </Field>
         )}
-      </Section>
 
-      <Section label="The Script">
-        <Field label="Full Script Text (final edited version)">
-          <textarea
-            rows={10}
-            className="field-input font-mono text-[13px] leading-relaxed"
-            value={form.full_script_text ?? ""}
-            onChange={(e) => set("full_script_text", e.target.value || null)}
-          />
-        </Field>
-        <Field label="Original Draft Text (pre-edit — feeds the Voice Learning Loop)">
-          <textarea
-            rows={5}
-            className="field-input font-mono text-[13px] leading-relaxed"
-            value={form.original_draft_text ?? ""}
-            onChange={(e) => set("original_draft_text", e.target.value || null)}
-          />
-        </Field>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Caption">
             <input
@@ -384,42 +441,29 @@ export function ScriptForm({ script, prefill }: Props) {
         </div>
       </Section>
 
-      <Section label="Quality Gate Snapshot — did it follow the system?">
+      {/* 3 — Quality Gate Snapshot (your self-assessment, not auto-detected) */}
+      <Section
+        label={script ? "Quality Gate Snapshot" : "3 — Quality Gate Snapshot"}
+        hint="Your own read on whether it followed the system. Tap to cycle: Pass → Fail → Not set."
+      >
         <div className="grid gap-2 sm:grid-cols-2">
-          <Toggle
-            label="Click Confirmation (hook matches promise in 3s)"
-            value={form.click_confirmation_passed}
-            onChange={(v) => set("click_confirmation_passed", v)}
-          />
-          <Toggle
-            label="Atomic Shareability (one clip-and-send moment)"
-            value={form.atomic_shareability_present}
-            onChange={(v) => set("atomic_shareability_present", v)}
-          />
-          <Toggle
-            label="Hook Commandments (Alignment / Speed / Clarity / Curiosity)"
-            value={form.hook_commandments_passed}
-            onChange={(v) => set("hook_commandments_passed", v)}
-          />
+          <Toggle label="Click Confirmation (hook matches promise in 3s)" value={form.click_confirmation_passed} onChange={(v) => set("click_confirmation_passed", v)} />
+          <Toggle label="Atomic Shareability (one clip-and-send moment)" value={form.atomic_shareability_present} onChange={(v) => set("atomic_shareability_present", v)} />
+          <Toggle label="Hook Commandments (Alignment / Speed / Clarity / Curiosity)" value={form.hook_commandments_passed} onChange={(v) => set("hook_commandments_passed", v)} />
           {isYouTube && (
             <>
-              <Toggle
-                label="Dopamine Ladder (micro-win every 15–30s)"
-                value={form.dopamine_ladder_used}
-                onChange={(v) => set("dopamine_ladder_used", v)}
-              />
-              <Toggle
-                label="Album Strategy (2nd best → best → 3rd best)"
-                value={form.album_strategy_confirmed}
-                onChange={(v) => set("album_strategy_confirmed", v)}
-              />
+              <Toggle label="Dopamine Ladder (micro-win every 15–30s)" value={form.dopamine_ladder_used} onChange={(v) => set("dopamine_ladder_used", v)} />
+              <Toggle label="Album Strategy (2nd best → best → 3rd best)" value={form.album_strategy_confirmed} onChange={(v) => set("album_strategy_confirmed", v)} />
             </>
           )}
         </div>
-        <p className="text-xs text-steel">Tap to cycle: Pass → Fail → Not set.</p>
       </Section>
 
-      <Section label="Performance — saves and shares weigh heaviest">
+      {/* 4 — Performance (manual — not inferable from text) */}
+      <Section
+        label={script ? "Performance" : "4 — Performance"}
+        hint="Entered by hand — saves and shares weigh heaviest. Not inferable from the script text."
+      >
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           {(
             [
@@ -457,26 +501,14 @@ export function ScriptForm({ script, prefill }: Props) {
           type="button"
           onClick={() => set("winning", !form.winning)}
           className={`flex w-full items-center justify-between rounded-[3px] border px-4 py-3 text-left transition-colors ${
-            form.winning
-              ? "border-gold bg-gold/15"
-              : "border-white/10 bg-black/30"
+            form.winning ? "border-gold bg-gold/15" : "border-white/10 bg-black/30"
           }`}
         >
-          <span className={`text-sm font-semibold ${form.winning ? "text-gold" : "text-steel"}`}>
-            Winning?
-          </span>
+          <span className={`text-sm font-semibold ${form.winning ? "text-gold" : "text-steel"}`}>Winning?</span>
           <span className="micro-label-steel">
             {form.winning ? <span className="text-gold">This one hit</span> : "Not flagged"}
           </span>
         </button>
-        <Field label="Post-Mortem Notes (why it worked / why it flopped)">
-          <textarea
-            rows={3}
-            className="field-input"
-            value={form.post_mortem_notes ?? ""}
-            onChange={(e) => set("post_mortem_notes", e.target.value || null)}
-          />
-        </Field>
       </Section>
 
       {error && (
@@ -491,12 +523,10 @@ export function ScriptForm({ script, prefill }: Props) {
           disabled={saving}
           className="w-full rounded-[3px] bg-gold px-4 py-3 text-sm font-semibold text-navy-deep transition-opacity hover:opacity-90 disabled:opacity-50"
         >
-          {saving ? "Saving..." : script ? "Update Script" : "Log Script"}
+          {saving ? "Saving..." : script ? "Update Script" : "Save to Vault"}
         </button>
         {gateErrors.length > 0 && (
-          <p className="mt-2 text-center text-xs text-steel">
-            Packaging Gate still needs: {gateErrors.join(", ")}
-          </p>
+          <p className="mt-2 text-center text-xs text-steel">Still needs: {gateErrors.join(", ")}</p>
         )}
       </div>
     </form>

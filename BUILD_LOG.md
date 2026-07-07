@@ -125,3 +125,17 @@ Live: https://24k-script-vault.vercel.app · Repo: /Users/nateojugo/24k-script-v
 Excluded `scripts/` from the app tsconfig so the verification utility doesn't affect the app build.
 
 **Security note:** the API key was shared in plaintext chat. Consider rotating it in the Anthropic console once you've confirmed everything works — the key in `.env.local`/Vercel would need updating to the new one.
+
+## Feature 1 Rework — Script Logger is now paste-and-analyze, not a manual form (2026-07-07)
+
+**Why:** the original Logger forced hand-selecting Platform/Pillar/Emotion/Hook Format before saving — wrong assumption. The value is the tool reading the tags off the script, not Nate labeling them.
+
+**Built a single shared Structure Analysis engine** (`src/lib/generation/analyze.ts` → `analyzeStructure(text, mode)`): one `claude-fable-5` structured-output call that reads script text and returns the full framework map (platform, pillar + secondary, target emotion, hook format, story structure, loop open/close, shock value score, re-hook count, CTA type, suggested title, plus the reusable structural skeleton). Two callers, one engine — no duplicate analysis systems:
+- `mode: "own"` → `/api/analyze-script`, used by the Script Logger on Nate's own finished scripts.
+- `mode: "transcript"` → `/api/extract-structure`, used by Transcript-to-Remix on another creator's transcript. Refactored to call the same engine (previously had its own inline call). The remix UI response shape is unchanged (the shared schema is a superset).
+
+**New Logger flow** (`src/components/ScriptForm.tsx`): (1) paste the finished script → (2) "Analyze & Auto-Fill Tags" pre-fills every Framework Tag from the analysis → (3) review/correct → (4) save. Content Series, Quality Gate self-assessment, and Performance stay manual (not inferable from text). Save gate is now a light "review before saving" check, not a fill-the-form wall.
+
+**One entry per script:** `/log` inserts once; editing goes through `/scripts/[id]/edit` which `update()`s the same row in place — never a duplicate Vault item. `original_draft_text` (dashboard-generated) and `full_script_text` (final edited) are both columns on that single row; edit mode preserves `original_draft_text` even though the Logger doesn't render a field for it.
+
+**Verified:** shared engine run on a real finished FAITH/TRAIN Reel via claude-fable-5 — correctly returned platform=Reels, hook_format=Contrarian, story_structure=null, extracted loop open/close verbatim, suggested a title, detected pillar-blending (TRAIN + FAITH secondary), cta_type=None. Build passes; `/api/analyze-script` returns 401 unauthenticated; `/log` redirects to login. **Not run in-browser** in this environment (auth-cookie constraint) — Nate should do a 30-second paste test after deploy to confirm the click-through feels right.

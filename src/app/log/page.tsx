@@ -48,7 +48,7 @@ export default async function LogPage({
           <p className="mt-1 text-sm text-steel">
             {prefill
               ? `Framework combo pre-loaded from "${sourceTitle}". Change the title and write the new one.`
-              : "The Packaging Gate is enforced. No gate, no save."}
+              : "Paste your finished script. The dashboard reads its structure and fills the tags — you just review and save."}
           </p>
         </div>
         <ScriptForm prefill={prefill} />

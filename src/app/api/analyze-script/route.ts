@@ -5,9 +5,9 @@ import { analyzeStructure } from "@/lib/generation/analyze";
 
 export const maxDuration = 180;
 
-// Feature 9 step 1: separate STRUCTURE from CONTENT on another creator's
-// transcript. Uses the shared Structure Analysis engine (same one the Script
-// Logger uses on Nate's own scripts) in "transcript" mode.
+// Script Logger: analyze Nate's own pasted, finished script and return the
+// auto-detected Framework Tags to pre-fill the form. Same engine as
+// /api/extract-structure — just pointed at his own script instead of a transcript.
 export async function POST(req: Request) {
   const { error } = await requireUser();
   if (error) return error;
@@ -18,13 +18,13 @@ export async function POST(req: Request) {
     );
   }
 
-  const { transcript } = await req.json();
-  if (!transcript?.trim() || transcript.trim().length < 100) {
-    return NextResponse.json({ error: "Paste a fuller transcript (100+ chars)" }, { status: 400 });
+  const { text } = await req.json();
+  if (!text?.trim() || text.trim().length < 40) {
+    return NextResponse.json({ error: "Paste a fuller script (40+ chars)" }, { status: 400 });
   }
 
   try {
-    const analysis = await analyzeStructure(transcript.trim(), "transcript");
+    const analysis = await analyzeStructure(text.trim(), "own");
     return NextResponse.json(analysis);
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 502 });
