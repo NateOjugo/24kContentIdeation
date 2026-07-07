@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
 import { ClipDownButton } from "@/components/ClipDownButton";
 import { LearnFromEditButton } from "@/components/LearnFromEditButton";
+import { PostMortemEditor } from "@/components/PostMortemEditor";
 import { RepeatBuilderButton } from "@/components/RepeatBuilderButton";
 import { createClient } from "@/lib/supabase/server";
 import { formatCount, type Script } from "@/lib/scripts";
@@ -164,12 +165,9 @@ export default async function ScriptDetail({
           </div>
         </div>
 
-        {s.post_mortem_notes && (
-          <div className="accent-card mb-5 p-5">
-            <div className="micro-label mb-2">Post-Mortem</div>
-            <p className="text-sm leading-relaxed whitespace-pre-wrap text-cream/90">{s.post_mortem_notes}</p>
-          </div>
-        )}
+        <div className="mb-5">
+          <PostMortemEditor scriptId={s.id} initial={s.post_mortem_notes} />
+        </div>
 
         {/* Actions */}
         <div className="mt-8 space-y-4 border-t border-white/8 pt-6">

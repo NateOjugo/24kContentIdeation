@@ -93,3 +93,26 @@
 **Verified with real queries:** seeded a 2-episode Stewardship Season, confirmed the Series query grouped both episodes and flagged Ep 1 (2700 saves+shares) as best over Ep 2 (1000); confirmed Repeat Builder prefill pulled the exact combo from the winning episode. Seed rows deleted — table back to 0.
 
 **Note:** found (and worked around in the test) that PostgREST bulk inserts with heterogeneous keys send NULL for omitted columns instead of applying the default — not an app issue, since ScriptForm always sends every column.
+
+## Phase 7 — Notes / Post-Mortem Log ✅ (2026-07-06)
+
+**Built** (Feature 6): inline `PostMortemEditor` on every script detail page — a freeform diagnosis textarea with its own Save that updates only `post_mortem_notes`. Always visible (add notes even when empty), kept visually and structurally separate from the framework tags, with a note that the Pattern Engine never reads it. The full edit form still has the field too.
+
+**Verified with real queries:** created a script, saved a post-mortem note inline, confirmed only `post_mortem_notes` changed and hook_format/emotion/winning were untouched. Seed row deleted.
+
+---
+
+## BUILD COMPLETE — all 7 phases (0–7) shipped
+
+Live: https://24k-script-vault.vercel.app · Repo: /Users/nateojugo/24k-script-vault (standalone) · Supabase: 24k-script-vault (zsyazcquundngmdrnzha)
+
+**Fully verified end-to-end (no AI key needed):** auth, Script Logger + Packaging Gate enforcement, Vault browse/search/filter, Pattern Engine rankings + Winning Formula, Repeat Builder prefill, Series View grouping, inline Post-Mortem, Tier 2 hooks import (2390 rows), Tier 3 knowledge ingestion (89 chunks) + vector search, embed edge function.
+
+**Wired but NOT run end-to-end (needs ANTHROPIC_API_KEY):** the four generation calls — /api/suggest-gate, /api/generate, /api/clip-down, /api/extract-structure + /api/remix, /api/learn-from-edit, /api/consolidate-voice. All return a clean 503 until the key is set. No fake output anywhere.
+
+### What Nate must do
+1. **Add the Anthropic API key** — `.env.local` (`ANTHROPIC_API_KEY=...`) for local, and the `24k-script-vault` Vercel project env for production. Then run one generation to confirm voice + format.
+2. **Change the login password** — see `LOGIN_CREDENTIALS.txt` (gitignored). Email: nateojugo45@gmail.com.
+3. **Log real past scripts** with real numbers (Stewardship Ep 1 & 2 first) — the Pattern Engine and gate suggestions come alive once there's data.
+4. Optional: drop the two missing Tier 3 PDFs (the_art_of_the_personal_brand.pdf, The_art_of_branding.pdf) into ~/Desktop/24k-script-vault/ and re-run `node scripts/ingest-knowledge.mjs` to add them.
+5. Optional: disable Supabase email signups (single-user tool).
