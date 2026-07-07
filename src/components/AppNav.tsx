@@ -4,6 +4,7 @@ import { SignOutButton } from "./SignOutButton";
 const links: { href: string; label: string }[] = [
   { href: "/", label: "Vault" },
   { href: "/log", label: "Log Script" },
+  { href: "/patterns", label: "Patterns" },
 ];
 
 export function AppNav() {

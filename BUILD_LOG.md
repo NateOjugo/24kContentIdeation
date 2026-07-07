@@ -31,3 +31,17 @@
 - `/scripts/[id]` — detail view (performance, loop, final script, collapsed original draft, caption, quality gate, post-mortem) + `/scripts/[id]/edit`.
 
 **Verified in browser:** logged a test script through the form (gate validation worked, insert + redirect to detail confirmed), full-text search matched script body text, emotion filter excluded/included correctly. Test row deleted afterward — Vault ships empty, no fake data.
+
+## Phase 2 — Pattern Engine ✅ (2026-07-06)
+
+**Built:** `/patterns` — server-rendered aggregation over the full scripts table (`src/lib/patterns.ts`):
+- Rankings for Hook Formats, Story Structures (YouTube only), Target Emotions, Pillars, and Content Series — sorted by avg saves+shares (primary signal per spec), with avg followers gained, avg views, sample size N, and win count beside it. Top row highlighted gold.
+- Winning Formula callout: takes the top 3 scripts by saves+shares and surfaces every framework attribute all three share, linking to the scripts.
+- Shock Value Check: below-80 vs 80+ performance comparison plus a flagged list of under-threshold scripts.
+- Honest empty state: engine refuses to rank until ≥3 scripts have performance data.
+
+**Verified:** inserted 4 clearly-labeled VERIFY rows, confirmed rankings and Winning Formula math in the browser (avg saves+shares 2166→2.2K correct; formula correctly extracted Contrarian + Awe + TRAIN), then deleted them. Vault is empty again.
+
+**Decisions:**
+- Aggregation is computed in the server component from one `select *` rather than SQL views — dataset is personal-scale (hundreds of rows max), and TS keeps the weighting logic in one reviewable place. Can move to materialized views if the table ever gets big.
+- **Seeding:** the Notion export (`~/Downloads/notion_import/SCRIPTS_DATABASE.csv`) uses a different taxonomy (MBS/ATHLETE pillars, Built Different/Temple Lens series) and `PERFORMANCE_TRACKER.csv` has no real numbers — only an example row. Rather than guess-map mislabeled data, the Vault ships empty. Nate: log your real past scripts (Stewardship Ep 1 & 2 first) with actual numbers and the Pattern Engine lights up.
