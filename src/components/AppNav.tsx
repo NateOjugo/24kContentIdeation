@@ -6,6 +6,7 @@ const links: { href: string; label: string }[] = [
   { href: "/log", label: "Log Script" },
   { href: "/patterns", label: "Patterns" },
   { href: "/generate", label: "Generate" },
+  { href: "/remix", label: "Remix" },
 ];
 
 export function AppNav() {

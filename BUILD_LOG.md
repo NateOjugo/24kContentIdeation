@@ -63,3 +63,12 @@
 **Verified:** Tier 2 category query returns rows; Tier 3 vector search returns relevant chunks (0.88 similarity on "how to write a viral hook"); embed edge function returns 384-dim vectors; all three API routes return 401 unauthenticated and `/generate` redirects to /login; production build passes with all routes.
 
 **NOT yet verified (blocked): the actual generation call.** No `ANTHROPIC_API_KEY` is available on this machine, so a live idea→script generation has not been run end to end. The routes return a clear 503 ("ANTHROPIC_API_KEY is not configured yet") until the key is set — no fake output is produced. **Action for Nate:** paste your Anthropic API key into `.env.local` (`ANTHROPIC_API_KEY=...`) for local use, and add it to the Vercel project env (`24k-script-vault` → Settings → Environment Variables) for production. Then run one generation to confirm voice/format before relying on it.
+
+## Phase 4 — Transcript-to-Remix Generator ✅ wired (2026-07-06)
+
+**Built** (Feature 9 — reuses the Phase 3 pipeline with a different input path):
+- `/api/extract-structure` — pastes a transcript, returns a STRUCTURAL MAP only (Hook Format, Story Structure, hook beat-breakdown, re-hook placement, dopamine-ladder pacing, shock-value angle, and a reusable beat-by-beat skeleton). Structured output via `claude-fable-5`. Explicitly instructed to describe *how* it was said, never *what* was said.
+- `/api/remix` — combines [structure map] + [Nate's take] + Script Skill + hooks + knowledge + voice corrections → new script that's structurally proven but entirely Nate's material. Auto-saves to Vault like `/api/generate`.
+- `/remix` UI: Paste Transcript → Extract Structure (renders the map) → Your Take + Packaging Gate → Generate Remix. Extracted hook format / structure pre-fill the gate.
+
+**Verified:** build passes; both routes return 401 unauthenticated, `/remix` redirects to /login. Same generation-call limitation as Phase 3 — the live remix call needs `ANTHROPIC_API_KEY` (returns clean 503 until set).
