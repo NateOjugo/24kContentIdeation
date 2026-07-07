@@ -1,39 +1,27 @@
+import Link from "next/link";
 import { AppNav } from "@/components/AppNav";
-import { createClient } from "@/lib/supabase/server";
+import { VaultBrowser } from "@/components/VaultBrowser";
 
-export default async function Home() {
-  const supabase = await createClient();
-  const { count, error } = await supabase
-    .from("scripts")
-    .select("*", { count: "exact", head: true });
-
+export default function Home() {
   return (
     <>
       <AppNav />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6">
-        <div className="mb-8">
-          <div className="micro-label mb-2">The Vault</div>
-          <h1 className="font-display text-4xl tracking-wide text-cream sm:text-5xl">
-            Every Script. Every Win. On Record.
-          </h1>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <div className="micro-label mb-2">The Vault</div>
+            <h1 className="font-display text-4xl tracking-wide text-cream sm:text-5xl">
+              Every Script. On Record.
+            </h1>
+          </div>
+          <Link
+            href="/log"
+            className="rounded-[3px] bg-gold px-5 py-2.5 text-sm font-semibold text-navy-deep transition-opacity hover:opacity-90"
+          >
+            + Log Script
+          </Link>
         </div>
-
-        <div className="accent-card p-8 text-center">
-          {error ? (
-            <p className="text-sm text-gold">
-              Database connection error: {error.message}
-            </p>
-          ) : (
-            <>
-              <div className="font-display text-6xl text-gold">{count ?? 0}</div>
-              <div className="micro-label-steel mt-2">Scripts Logged</div>
-              <p className="mx-auto mt-4 max-w-md text-sm text-steel">
-                Foundation is live. The Script Logger arrives in Phase 1 — this
-                counter reads straight from the scripts table.
-              </p>
-            </>
-          )}
-        </div>
+        <VaultBrowser />
       </main>
     </>
   );

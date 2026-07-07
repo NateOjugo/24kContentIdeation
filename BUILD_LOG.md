@@ -22,3 +22,12 @@
 **Open items for Nate:**
 - Two Tier 3 reference docs were not found on this machine: `the_art_of_the_personal_brand.pdf` and `The_art_of_branding.pdf`. Found and will use: Kallaway's Guide To Lead Magnets.docx, personal brand playbook.pdf, script tips&tricks.pdf, series and content ideas.docx (Downloads). Drop the two missing PDFs into `~/Desktop/24k-script-vault/` if you want them in the knowledge base.
 - Hooks database: using `hooks_database.csv` found in a prior Claude session workspace (matches the expected category/content/example/source_file/tags columns, ~2,490 rows). Original appears to be `hooksdatabse.numbers` in iCloud Numbers. Will clean junk rows (markdown table separators) during Phase 3 import.
+
+## Phase 1 — Script Logger + Vault ✅ (2026-07-06)
+
+**Built:**
+- `/log` — Script Logger form (`src/components/ScriptForm.tsx`, reused for edit + later Repeat Builder prefill). Packaging Gate enforced client-side: no save without Title, Platform, Pillar, Target Emotion, Hook Format, and Story Structure when platform is YouTube. Live "gate still needs" hint under the save button. Shock Value warning when below 80. YouTube-only fields (Story Structure, Re-Hook Count, Dopamine Ladder, Album Strategy) appear only for YouTube and are nulled on save for Reels. Quality Gate toggles cycle Pass → Fail → Not set. Mobile: single column, sticky save bar.
+- `/` — The Vault (`src/components/VaultBrowser.tsx`): script cards with framework tags, performance strip (views/saves/shares/followers), winning badge; full-text websearch against the `search_tsv` column; filters for Platform, Pillar (matches secondary lane too), Emotion, Hook Format, Structure, Series, and Winning-only.
+- `/scripts/[id]` — detail view (performance, loop, final script, collapsed original draft, caption, quality gate, post-mortem) + `/scripts/[id]/edit`.
+
+**Verified in browser:** logged a test script through the form (gate validation worked, insert + redirect to detail confirmed), full-text search matched script body text, emotion filter excluded/included correctly. Test row deleted afterward — Vault ships empty, no fake data.
