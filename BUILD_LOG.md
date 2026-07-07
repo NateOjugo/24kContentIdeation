@@ -45,3 +45,21 @@
 **Decisions:**
 - Aggregation is computed in the server component from one `select *` rather than SQL views — dataset is personal-scale (hundreds of rows max), and TS keeps the weighting logic in one reviewable place. Can move to materialized views if the table ever gets big.
 - **Seeding:** the Notion export (`~/Downloads/notion_import/SCRIPTS_DATABASE.csv`) uses a different taxonomy (MBS/ATHLETE pillars, Built Different/Temple Lens series) and `PERFORMANCE_TRACKER.csv` has no real numbers — only an example row. Rather than guess-map mislabeled data, the Vault ships empty. Nate: log your real past scripts (Stewardship Ep 1 & 2 first) with actual numbers and the Pattern Engine lights up.
+
+## Phase 3 — In-Dashboard Generation + Knowledge Architecture ✅ wired (2026-07-06)
+
+**Built the full Tier 1/2/3 knowledge architecture (Section 3 of the instructions):**
+- **Tier 1** (`src/lib/generation/systemPrompt.ts`): the entire 24K Script Skill converted into the generation system prompt (Packaging Gate, Voice DNA, both output-format templates, 9 hook formats, 7 story structures, Quality Gate). Baked in on every call. Voice Correction Log appended, capped at 30 entries.
+- **Tier 2** (`hooks` table + `src/lib/generation/retrieval.ts`): imported `hooks_database.csv` → 2,390 clean rows (junk markdown-separator rows stripped). On generation, queried by the selected Hook Format + Emotion via a category map — top ~15 examples passed in, never the whole table.
+- **Tier 3** (`knowledge_chunks` pgvector table + `embed` edge function): one-time ingestion of 4 reference docs → 89 chunks embedded with gte-small (384-dim) via a Supabase edge function. Each generation embeds the topic+emotion and pulls the top 4 chunks via cosine similarity (`match_knowledge_chunks` RPC).
+- `voice_corrections` table created (populated in Phase 5, already read by generation).
+
+**Routes** (all server-side, auth-guarded, `ANTHROPIC_API_KEY` never exposed to client):
+- `/api/suggest-gate` — AI-suggested Packaging Gate. Feeds Feature-3 Vault history (what's won) into a `claude-fable-5` structured-output call; returns pillar/emotion/hook-format/structure + reasoning.
+- `/api/generate` — Idea Intake → assembles Tier 1+2+3 → `claude-fable-5` (server-side fallback to Opus 4.8 on refusal) → auto-saves as a new Vault entry with `original_draft_text` + pre-filled framework tags → redirects to the script.
+- `/api/clip-down` — "Clip This Down": on-demand Reels cut from a finished YouTube script (secondary action, not automatic).
+- `/generate` UI: Idea Intake → Suggest Packaging Gate (or set manually) → confirm/override → Generate.
+
+**Verified:** Tier 2 category query returns rows; Tier 3 vector search returns relevant chunks (0.88 similarity on "how to write a viral hook"); embed edge function returns 384-dim vectors; all three API routes return 401 unauthenticated and `/generate` redirects to /login; production build passes with all routes.
+
+**NOT yet verified (blocked): the actual generation call.** No `ANTHROPIC_API_KEY` is available on this machine, so a live idea→script generation has not been run end to end. The routes return a clear 503 ("ANTHROPIC_API_KEY is not configured yet") until the key is set — no fake output is produced. **Action for Nate:** paste your Anthropic API key into `.env.local` (`ANTHROPIC_API_KEY=...`) for local use, and add it to the Vercel project env (`24k-script-vault` → Settings → Environment Variables) for production. Then run one generation to confirm voice/format before relying on it.

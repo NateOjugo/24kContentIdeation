@@ -5,6 +5,7 @@ const links: { href: string; label: string }[] = [
   { href: "/", label: "Vault" },
   { href: "/log", label: "Log Script" },
   { href: "/patterns", label: "Patterns" },
+  { href: "/generate", label: "Generate" },
 ];
 
 export function AppNav() {
