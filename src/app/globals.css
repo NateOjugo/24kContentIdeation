@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+@theme {
+  /* 24K brand palette — five colors only, no additions */
+  --color-navy-deep: #0a1628;
+  --color-navy-mid: #0f1e33;
+  --color-gold: #c9a84c;
+  --color-cream: #f0ede6;
+  --color-steel: #8a8578;
+
+  --font-display: var(--font-bebas), sans-serif;
+  --font-sans: var(--font-inter), sans-serif;
+}
+
+body {
+  background: var(--color-navy-deep);
+  color: var(--color-cream);
+  font-family: var(--font-sans);
+}
+
+/* Brand accent-line card — the established 24K visual language:
+   panel on navy-mid with a gold accent line on the left edge. */
+.accent-card {
+  position: relative;
+  background: var(--color-navy-mid);
+  border: 1px solid rgb(255 255 255 / 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.accent-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background: var(--color-gold);
+  opacity: 0.55;
+  transition: opacity 0.2s ease;
+}
+.accent-card:hover::before,
+.accent-card[data-active="true"]::before {
+  opacity: 1;
+}
+
+/* Monospace micro-label used across the brand map */
+.micro-label {
+  font-family: ui-monospace, "Courier New", monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+}
+
+.micro-label-steel {
+  font-family: ui-monospace, "Courier New", monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-steel);
+}
+
+/* Form controls on navy */
+.field-input {
+  width: 100%;
+  background: rgb(0 0 0 / 0.3);
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 3px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--color-cream);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.field-input:focus {
+  border-color: var(--color-gold);
+}
+.field-input::placeholder {
+  color: rgb(138 133 120 / 0.6);
+}
+select.field-input option {
+  background: var(--color-navy-mid);
+  color: var(--color-cream);
+}
