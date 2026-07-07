@@ -116,3 +116,12 @@ Live: https://24k-script-vault.vercel.app · Repo: /Users/nateojugo/24k-script-v
 3. **Log real past scripts** with real numbers (Stewardship Ep 1 & 2 first) — the Pattern Engine and gate suggestions come alive once there's data.
 4. Optional: drop the two missing Tier 3 PDFs (the_art_of_the_personal_brand.pdf, The_art_of_branding.pdf) into ~/Desktop/24k-script-vault/ and re-run `node scripts/ingest-knowledge.mjs` to add them.
 5. Optional: disable Supabase email signups (single-user tool).
+
+
+## Generation VERIFIED end-to-end (2026-07-06, later)
+
+`ANTHROPIC_API_KEY` added to `.env.local` and the `24k-script-vault` Vercel production env. Ran a real generation through the actual pipeline (`scripts/verify-generation.ts`): Tier 2 pulled 10 hooks, Tier 3 retrieved 3 knowledge chunks, and `claude-fable-5` (served directly, stop_reason end_turn) produced a correctly-formatted 24K FAITH-lane Reels script — TARGET EMOTION header, 3-step Contrarian hook, Context/Application/Framing body, screenshot closing punch, caption, "therefore" per the voice rule, Physical-First/Meaning-Last with scripture in the punchline, no em dashes in the prose. **All four generation surfaces are now proven working, not just wired.**
+
+Excluded `scripts/` from the app tsconfig so the verification utility doesn't affect the app build.
+
+**Security note:** the API key was shared in plaintext chat. Consider rotating it in the Anthropic console once you've confirmed everything works — the key in `.env.local`/Vercel would need updating to the new one.
