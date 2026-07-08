@@ -1,14 +1,16 @@
-import { SHOCK_VALUE_THRESHOLD, type Script } from "./scripts";
+import { performanceScore, SHOCK_VALUE_THRESHOLD, type Script } from "./scripts";
 
-// Saves + shares are the primary signals per the spec — rankings sort on that first.
+// Rankings sort on the composite rate metric: save_rate + share_rate +
+// retention_rate. Outlier tier (Amazing/Semi-Good/Poor) is the primary grouping.
 
 export type RankRow = {
   label: string;
   n: number;
-  avgSavesShares: number | null;
-  avgFollowers: number | null;
-  avgViews: number | null;
-  wins: number;
+  avgPerformance: number | null; // composite save+share+retention
+  avgSaveRate: number | null;
+  avgShareRate: number | null;
+  avgRetention: number | null;
+  amazing: number; // count of Amazing-tier scripts in this group
 };
 
 function avg(nums: number[]): number | null {
@@ -16,15 +18,27 @@ function avg(nums: number[]): number | null {
   return nums.reduce((a, b) => a + b, 0) / nums.length;
 }
 
-function hasPerf(s: Script): boolean {
-  return s.saves != null || s.shares != null || s.followers_gained != null || s.views != null;
+function nn(vals: (number | null)[]): number[] {
+  return vals.filter((v): v is number => v != null);
 }
 
-export function savesShares(s: Script): number {
-  return (s.saves ?? 0) + (s.shares ?? 0);
+/** A script has performance data once any rate or view count is logged. */
+export function hasPerf(s: Script): boolean {
+  return (
+    s.views != null ||
+    s.save_rate != null ||
+    s.share_rate != null ||
+    s.retention_rate != null ||
+    s.like_rate != null ||
+    s.skip_rate != null
+  );
 }
 
-export function rankBy(scripts: Script[], key: (s: Script) => string | null): RankRow[] {
+export function rankBy(
+  scripts: Script[],
+  key: (s: Script) => string | null,
+  amazingIds: Set<string>
+): RankRow[] {
   const groups = new Map<string, Script[]>();
   for (const s of scripts) {
     const k = key(s);
@@ -38,28 +52,37 @@ export function rankBy(scripts: Script[], key: (s: Script) => string | null): Ra
     rows.push({
       label,
       n: group.length,
-      avgSavesShares: avg(withPerf.map(savesShares)),
-      avgFollowers: avg(withPerf.map((s) => s.followers_gained).filter((v): v is number => v != null)),
-      avgViews: avg(withPerf.map((s) => s.views).filter((v): v is number => v != null)),
-      wins: group.filter((s) => s.winning).length,
+      avgPerformance: avg(nn(withPerf.map((s) => performanceScore(s)))),
+      avgSaveRate: avg(nn(withPerf.map((s) => s.save_rate))),
+      avgShareRate: avg(nn(withPerf.map((s) => s.share_rate))),
+      avgRetention: avg(nn(withPerf.map((s) => s.retention_rate))),
+      amazing: group.filter((s) => amazingIds.has(s.id)).length,
     });
   }
-  return rows.sort((a, b) => (b.avgSavesShares ?? -1) - (a.avgSavesShares ?? -1));
+  return rows.sort((a, b) => (b.avgPerformance ?? -1) - (a.avgPerformance ?? -1));
 }
 
 export type WinningFormula = {
   topScripts: { id: string; title: string; metric: number }[];
   shared: { field: string; value: string }[];
+  basis: "amazing" | "top";
 };
 
-/** Spec: "your 3 highest performers all share this combo" — take the top 3 by
- * saves+shares and surface every framework attribute all of them share. */
-export function winningFormula(scripts: Script[]): WinningFormula | null {
-  const ranked = scripts
-    .filter(hasPerf)
-    .sort((a, b) => savesShares(b) - savesShares(a))
-    .slice(0, 3);
-  if (ranked.length < 3) return null;
+/** The shared framework combo behind your best performers. Prefers the Amazing
+ * outlier tier; falls back to the top 3 by composite performance. */
+export function winningFormula(scripts: Script[], amazingIds: Set<string>): WinningFormula | null {
+  const amazing = scripts.filter((s) => amazingIds.has(s.id));
+  let basis: "amazing" | "top" = "amazing";
+  let pool = amazing;
+  if (pool.length < 2) {
+    basis = "top";
+    pool = scripts
+      .filter(hasPerf)
+      .filter((s) => performanceScore(s) != null)
+      .sort((a, b) => (performanceScore(b) ?? 0) - (performanceScore(a) ?? 0))
+      .slice(0, 3);
+  }
+  if (pool.length < 2) return null;
 
   const fields: { field: string; get: (s: Script) => string | null }[] = [
     { field: "Hook Format", get: (s) => s.hook_format },
@@ -71,20 +94,21 @@ export function winningFormula(scripts: Script[]): WinningFormula | null {
   ];
 
   const shared = fields.flatMap(({ field, get }) => {
-    const v = get(ranked[0]);
-    return v && ranked.every((s) => get(s) === v) ? [{ field, value: v }] : [];
+    const v = get(pool[0]);
+    return v && pool.every((s) => get(s) === v) ? [{ field, value: v }] : [];
   });
 
   if (shared.length === 0) return null;
   return {
-    topScripts: ranked.map((s) => ({ id: s.id, title: s.title, metric: savesShares(s) })),
+    topScripts: pool.map((s) => ({ id: s.id, title: s.title, metric: performanceScore(s) ?? 0 })),
     shared,
+    basis,
   };
 }
 
 export type ShockComparison = {
-  low: { n: number; avgSavesShares: number | null; avgViews: number | null };
-  high: { n: number; avgSavesShares: number | null; avgViews: number | null };
+  low: { n: number; avgPerformance: number | null; avgRetention: number | null };
+  high: { n: number; avgPerformance: number | null; avgRetention: number | null };
   lowScripts: { id: string; title: string; score: number }[];
 };
 
@@ -96,8 +120,8 @@ export function shockValueComparison(scripts: Script[]): ShockComparison {
     const withPerf = group.filter(hasPerf);
     return {
       n: group.length,
-      avgSavesShares: avg(withPerf.map(savesShares)),
-      avgViews: avg(withPerf.map((s) => s.views).filter((v): v is number => v != null)),
+      avgPerformance: avg(nn(withPerf.map((s) => performanceScore(s)))),
+      avgRetention: avg(nn(withPerf.map((s) => s.retention_rate))),
     };
   };
   return {

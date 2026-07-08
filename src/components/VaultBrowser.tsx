@@ -13,6 +13,7 @@ import {
   formatCount,
   type Script,
 } from "@/lib/scripts";
+import { computeOutliers, type OutlierResult } from "@/lib/outlier";
 
 type Filters = {
   q: string;
@@ -22,7 +23,7 @@ type Filters = {
   hookFormat: string;
   structure: string;
   series: string;
-  winningOnly: boolean;
+  amazingOnly: boolean;
 };
 
 const NO_FILTERS: Filters = {
@@ -33,7 +34,7 @@ const NO_FILTERS: Filters = {
   hookFormat: "",
   structure: "",
   series: "",
-  winningOnly: false,
+  amazingOnly: false,
 };
 
 function FilterSelect({
@@ -73,16 +74,29 @@ function Tag({ children, gold }: { children: React.ReactNode; gold?: boolean }) 
   );
 }
 
-function ScriptCard({ s }: { s: Script }) {
+function pctStr(v: number | null): string {
+  return v == null ? "—" : `${v.toFixed(1)}%`;
+}
+
+function OutlierBadge({ o }: { o: OutlierResult | undefined }) {
+  if (!o || !o.established) return null;
+  if (o.reachOutlier) return <Tag gold>Reach ⚠</Tag>;
+  if (o.tier === "Amazing") return <Tag gold>Amazing</Tag>;
+  if (o.tier === "Semi-Good") return <Tag>Semi-Good</Tag>;
+  return <Tag>Poor</Tag>;
+}
+
+function ScriptCard({ s, outlier }: { s: Script; outlier: OutlierResult | undefined }) {
+  const isAmazing = outlier?.established && outlier.tier === "Amazing";
   return (
     <Link
       href={`/scripts/${s.id}`}
       className="accent-card block p-4 transition-colors hover:border-white/15"
-      data-active={s.winning || undefined}
+      data-active={isAmazing || undefined}
     >
       <div className="mb-2 flex items-start justify-between gap-3">
         <h3 className="min-w-0 truncate text-[15px] font-semibold text-cream">{s.title}</h3>
-        {s.winning && <Tag gold>Winning</Tag>}
+        <OutlierBadge o={outlier} />
       </div>
       <div className="mb-3 flex flex-wrap gap-1.5">
         <Tag>{s.platform}</Tag>
@@ -96,9 +110,9 @@ function ScriptCard({ s }: { s: Script }) {
       <div className="flex items-center justify-between gap-2 border-t border-white/8 pt-3">
         <div className="flex gap-4 font-mono text-[11px] text-steel">
           <span><span className="text-cream">{formatCount(s.views)}</span> views</span>
-          <span><span className="text-cream">{formatCount(s.saves)}</span> saves</span>
-          <span><span className="text-cream">{formatCount(s.shares)}</span> shares</span>
-          <span className="hidden sm:inline"><span className="text-cream">{formatCount(s.followers_gained)}</span> followers</span>
+          <span><span className="text-cream">{pctStr(s.save_rate)}</span> save</span>
+          <span><span className="text-cream">{pctStr(s.share_rate)}</span> share</span>
+          <span className="hidden sm:inline"><span className="text-cream">{pctStr(s.retention_rate)}</span> ret</span>
         </div>
         <span className="shrink-0 font-mono text-[11px] text-steel/70">
           {s.date_posted ?? "unposted"}
@@ -111,8 +125,19 @@ function ScriptCard({ s }: { s: Script }) {
 export function VaultBrowser() {
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const [scripts, setScripts] = useState<Script[] | null>(null);
+  const [outliers, setOutliers] = useState<Map<string, OutlierResult>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Global outlier baseline — computed once over ALL scripts (unaffected by
+  // filters) so the median stays correct no matter what's on screen.
+  useEffect(() => {
+    (async () => {
+      const supabase = createClient();
+      const { data } = await supabase.from("scripts").select("id, views, save_rate, share_rate");
+      if (data) setOutliers(computeOutliers(data));
+    })();
+  }, []);
 
   const runQuery = useCallback(async (f: Filters) => {
     const supabase = createClient();
@@ -130,7 +155,6 @@ export function VaultBrowser() {
     if (f.hookFormat) query = query.eq("hook_format", f.hookFormat);
     if (f.structure) query = query.eq("story_structure", f.structure);
     if (f.series) query = query.eq("content_series", f.series);
-    if (f.winningOnly) query = query.eq("winning", true);
 
     const { data, error } = await query;
     if (error) setError(error.message);
@@ -153,7 +177,14 @@ export function VaultBrowser() {
 
   const active =
     filters.platform || filters.pillar || filters.emotion || filters.hookFormat ||
-    filters.structure || filters.series || filters.winningOnly || filters.q;
+    filters.structure || filters.series || filters.amazingOnly || filters.q;
+
+  // Amazing-only is a computed tier, so it filters client-side over the outlier map.
+  const visible = (scripts ?? []).filter((s) => {
+    if (!filters.amazingOnly) return true;
+    const o = outliers.get(s.id);
+    return o?.established && o.tier === "Amazing";
+  });
 
   return (
     <div>
@@ -173,14 +204,14 @@ export function VaultBrowser() {
           <FilterSelect value={filters.series} onChange={(v) => set("series", v)} placeholder="Series" options={CONTENT_SERIES} />
           <button
             type="button"
-            onClick={() => set("winningOnly", !filters.winningOnly)}
+            onClick={() => set("amazingOnly", !filters.amazingOnly)}
             className={`rounded-[3px] border px-3 py-2 font-mono text-[11px] font-bold tracking-[0.1em] uppercase transition-colors ${
-              filters.winningOnly
+              filters.amazingOnly
                 ? "border-gold bg-gold/15 text-gold"
                 : "border-white/10 bg-black/30 text-steel hover:text-cream"
             }`}
           >
-            Winning Only
+            Amazing Only
           </button>
           {active && (
             <button
@@ -200,12 +231,10 @@ export function VaultBrowser() {
         <p className="py-12 text-center text-sm text-steel">Loading the Vault…</p>
       )}
 
-      {scripts !== null && scripts.length === 0 && (
+      {scripts !== null && visible.length === 0 && (
         <div className="accent-card p-10 text-center">
           <p className="text-sm text-steel">
-            {active
-              ? "Nothing matches those filters."
-              : "The Vault is empty. Log your first script."}
+            {active ? "Nothing matches those filters." : "The Vault is empty. Log your first script."}
           </p>
           {!active && (
             <Link
@@ -218,12 +247,12 @@ export function VaultBrowser() {
         </div>
       )}
 
-      {scripts !== null && scripts.length > 0 && (
+      {scripts !== null && visible.length > 0 && (
         <>
-          <div className="micro-label-steel mb-3">{scripts.length} script{scripts.length === 1 ? "" : "s"}</div>
+          <div className="micro-label-steel mb-3">{visible.length} script{visible.length === 1 ? "" : "s"}</div>
           <div className="grid gap-3 md:grid-cols-2">
-            {scripts.map((s) => (
-              <ScriptCard key={s.id} s={s} />
+            {visible.map((s) => (
+              <ScriptCard key={s.id} s={s} outlier={outliers.get(s.id)} />
             ))}
           </div>
         </>

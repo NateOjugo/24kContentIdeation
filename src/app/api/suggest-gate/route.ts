@@ -4,6 +4,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { requireUser } from "@/lib/generation/routeAuth";
 import { anthropicConfigured, getClient, GENERATION_MODEL } from "@/lib/generation/anthropic";
 import { rankBy } from "@/lib/patterns";
+import { computeOutliers } from "@/lib/outlier";
 import { EMOTIONS, HOOK_FORMATS, PILLARS, STORY_STRUCTURES, type Script } from "@/lib/scripts";
 
 export const maxDuration = 120;
@@ -35,18 +36,23 @@ export async function POST(req: Request) {
   // Feature 3 data feeds the suggestion: what has historically won in the Vault
   const { data: scripts } = await supabase.from("scripts").select("*");
   const all = (scripts ?? []) as Script[];
+  const amazingIds = new Set(
+    [...computeOutliers(all).entries()]
+      .filter(([, o]) => o.established && o.tier === "Amazing")
+      .map(([id]) => id)
+  );
   const summarize = (label: string, rows: ReturnType<typeof rankBy>) =>
     rows.length
       ? `${label}: ${rows
           .slice(0, 3)
-          .map((r) => `${r.label} (avg saves+shares ${Math.round(r.avgSavesShares ?? 0)}, n=${r.n})`)
+          .map((r) => `${r.label} (avg performance ${(r.avgPerformance ?? 0).toFixed(1)}, n=${r.n})`)
           .join("; ")}`
       : null;
   const history = [
-    summarize("Top hook formats", rankBy(all, (s) => s.hook_format)),
-    summarize("Top emotions", rankBy(all, (s) => s.target_emotion)),
-    summarize("Top pillars", rankBy(all, (s) => s.pillar)),
-    summarize("Top structures", rankBy(all.filter((s) => s.platform === "YouTube"), (s) => s.story_structure)),
+    summarize("Top hook formats", rankBy(all, (s) => s.hook_format, amazingIds)),
+    summarize("Top emotions", rankBy(all, (s) => s.target_emotion, amazingIds)),
+    summarize("Top pillars", rankBy(all, (s) => s.pillar, amazingIds)),
+    summarize("Top structures", rankBy(all.filter((s) => s.platform === "YouTube"), (s) => s.story_structure, amazingIds)),
   ]
     .filter(Boolean)
     .join("\n");

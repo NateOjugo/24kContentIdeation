@@ -32,6 +32,11 @@ export const StructuralAnalysisSchema = z.object({
   re_hook_count: z.number().nullable(),
   cta_type: z.enum(CTA_TYPES).nullable(),
   suggested_title: z.string(),
+  // Quality Gate — auto-determined from the text (atomic shareability stays manual)
+  click_confirmation_passed: z.boolean(),
+  hook_commandments_passed: z.boolean(),
+  dopamine_ladder_used: z.boolean().nullable(), // YouTube only, else null
+  album_strategy_confirmed: z.boolean().nullable(), // YouTube only, else null
   // Structural scaffolding — Transcript-to-Remix reuses these (how, not what)
   hook_breakdown: z.string(),
   rehook_placement: z.string(),
@@ -53,6 +58,10 @@ const SHARED_RULES = `Detect every field from what is actually in the text — n
 - re_hook_count: for YouTube, count the re-hooks between points; null for Reels.
 - cta_type: "Native Embed" if a next-step CTA is woven in as the logical solution; "None" if it just ends on the punchline.
 - suggested_title: a short internal reference title.
+- click_confirmation_passed: true if the hook confirms its promise within the first 3 seconds (the opening line matches what the piece delivers).
+- hook_commandments_passed: true if the hook satisfies all four commandments — Alignment (visual/spoken/text say the same thing), Speed (starts mid-thought, no warm-up), Clarity (topic clear immediately), Curiosity (a loop is opened).
+- dopamine_ladder_used: for YouTube, true if micro-wins land roughly every 15-30 seconds; null for Reels.
+- album_strategy_confirmed: for YouTube, true if points are sequenced 2nd-best then best then 3rd-best; null for Reels.
 - hook_breakdown: how the hook is built (the S1 context lean / S2 scroll stop / S3 contrarian snapback beats).
 - rehook_placement: where attention resets happen between points.
 - dopamine_ladder_pacing: where the micro-wins land.
@@ -67,29 +76,39 @@ ${SHARED_RULES}`;
 
 export async function analyzeStructure(
   text: string,
-  mode: "own" | "transcript"
+  mode: "own" | "transcript",
+  platformHint?: "Reels" | "YouTube"
 ): Promise<StructuralAnalysis> {
   const client = getClient();
+  const label = mode === "own" ? "MY FINISHED SCRIPT" : "TRANSCRIPT";
+  // Platform-first: when Nate selects the platform up front, tell the analyzer
+  // which structure to expect instead of guessing it from the text.
+  const platformDirective = platformHint
+    ? `\n\nThe platform is ${platformHint}. Analyze against ${
+        platformHint === "Reels"
+          ? "the Reels single-loop structure"
+          : "the YouTube StoryLoop structure (Dopamine Ladder, Album Strategy, Re-Hooks)"
+      }, and set platform to "${platformHint}".`
+    : "";
+
   const response = await client.messages.parse({
     model: GENERATION_MODEL,
     max_tokens: 3000,
     output_config: { format: zodOutputFormat(StructuralAnalysisSchema) },
     system: mode === "own" ? OWN_SYSTEM : TRANSCRIPT_SYSTEM,
-    messages: [
-      {
-        role: "user",
-        content: `${mode === "own" ? "MY FINISHED SCRIPT" : "TRANSCRIPT"}:\n${text}`,
-      },
-    ],
+    messages: [{ role: "user", content: `${label}:\n${text}${platformDirective}` }],
   });
 
   if (!response.parsed_output) throw new Error("Structure analysis returned no result");
   const out = response.parsed_output;
+  if (platformHint) out.platform = platformHint;
   // clamp the score, null out YouTube-only fields on Reels
   out.shock_value_score = Math.max(0, Math.min(100, Math.round(out.shock_value_score)));
   if (out.platform === "Reels") {
     out.story_structure = null;
     out.re_hook_count = null;
+    out.dopamine_ladder_used = null;
+    out.album_strategy_confirmed = null;
   }
   return out;
 }

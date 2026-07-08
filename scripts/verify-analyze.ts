@@ -25,6 +25,10 @@ const Schema = z.object({
   re_hook_count: z.number().nullable(),
   cta_type: z.enum(CTA_TYPES).nullable(),
   suggested_title: z.string(),
+  click_confirmation_passed: z.boolean(),
+  hook_commandments_passed: z.boolean(),
+  dopamine_ladder_used: z.boolean().nullable(),
+  album_strategy_confirmed: z.boolean().nullable(),
   hook_breakdown: z.string(),
   rehook_placement: z.string(),
   dopamine_ladder_pacing: z.string(),
@@ -50,7 +54,7 @@ const response = await client.messages.parse({
   max_tokens: 3000,
   output_config: { format: zodOutputFormat(Schema) },
   system: OWN_SYSTEM,
-  messages: [{ role: "user", content: `MY FINISHED SCRIPT:\n${script}` }],
+  messages: [{ role: "user", content: `MY FINISHED SCRIPT:\n${script}\n\nThe platform is Reels. Analyze against the Reels single-loop structure, and set platform to "Reels".` }],
 });
 
 const a = response.parsed_output;
@@ -66,4 +70,9 @@ console.log("  cta_type:         ", a.cta_type);
 console.log("  loop_open:        ", a.loop_open);
 console.log("  loop_close:       ", a.loop_close);
 console.log("  suggested_title:  ", a.suggested_title);
-console.log("\nSanity: Reels platform =", a.platform === "Reels", "| FAITH pillar =", a.pillar === "FAITH", "| story_structure null on Reels =", a.story_structure === null);
+console.log("AUTO QUALITY GATE:");
+console.log("  click_confirmation:", a.click_confirmation_passed);
+console.log("  hook_commandments: ", a.hook_commandments_passed);
+console.log("  dopamine_ladder:   ", a.dopamine_ladder_used, "(should be null on Reels)");
+console.log("  album_strategy:    ", a.album_strategy_confirmed, "(should be null on Reels)");
+console.log("\nSanity: Reels platform =", a.platform === "Reels", "| story_structure null on Reels =", a.story_structure === null, "| quality booleans present =", typeof a.click_confirmation_passed === "boolean");

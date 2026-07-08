@@ -139,3 +139,19 @@ Excluded `scripts/` from the app tsconfig so the verification utility doesn't af
 **One entry per script:** `/log` inserts once; editing goes through `/scripts/[id]/edit` which `update()`s the same row in place — never a duplicate Vault item. `original_draft_text` (dashboard-generated) and `full_script_text` (final edited) are both columns on that single row; edit mode preserves `original_draft_text` even though the Logger doesn't render a field for it.
 
 **Verified:** shared engine run on a real finished FAITH/TRAIN Reel via claude-fable-5 — correctly returned platform=Reels, hook_format=Contrarian, story_structure=null, extracted loop open/close verbatim, suggested a title, detected pillar-blending (TRAIN + FAITH secondary), cta_type=None. Build passes; `/api/analyze-script` returns 401 unauthenticated; `/log` redirects to login. **Not run in-browser** in this environment (auth-cookie constraint) — Nate should do a 30-second paste test after deploy to confirm the click-through feels right.
+
+## Performance model + Outlier scoring overhaul (2026-07-07)
+
+**1. Platform-first logger.** Platform selection is now Step 1 (before pasting). The chosen platform is passed into the analysis (`analyzeStructure(text, "own", platformHint)`) so it reads for the right structure — Reels single-loop vs YouTube StoryLoop/Dopamine/Album/Re-Hooks — instead of inferring from text.
+
+**2. Watch time with a denominator.** Added `video_duration` (sec) and `average_watch_time` (sec). `retention_rate` is a **generated Postgres column** (`average_watch_time / video_duration * 100`) — never hand-entered; the form shows a live preview.
+
+**3. IG-Insights rate metrics replace raw counts.** Dropped `likes`/`shares`/`saves` raw columns; added `skip_rate`, `share_rate`, `like_rate`, `save_rate` (percentages, manual entry — match Insights' own reporting). Views, comments, followers_gained kept.
+
+**4. Computed Outlier Score replaces the binary "Winning?" toggle** (`src/lib/outlier.ts`, never stored, never hand-set): median Views over all performance-logged scripts (recomputed each render) → multiplier = views ÷ median → Poor (<1x) / Semi-Good (1–2.9x) / Amazing (≥3x). Amazing-on-views but below-median on BOTH save_rate and share_rate → "Reach Outlier — verify quality". Baseline needs ≥5 performance-logged scripts, else "Baseline not yet established." Vault cards, script detail, and Series view all show the tier; the Vault filter is now "Amazing Only" (client-side over a global baseline fetch so the median isn't skewed by active filters).
+
+**5. Quality Gate mostly auto-determined.** The analysis engine now returns Click Confirmation, Hook Commandments, Dopamine Ladder, Album Strategy, and Re-Hook Count from the script text. Atomic Shareability stays manual (needs visual judgment) and is labeled as such.
+
+**6. Pattern Engine reworked** (`src/lib/patterns.ts`): ranks framework combos by the composite `save_rate + share_rate + retention_rate` (not raw counts); the primary grouping is now the Outlier tier breakdown (Amazing/Semi-Good/Poor), and the Winning Formula derives from the Amazing tier (falls back to top-3 by composite).
+
+**Verified:** migration applied (scripts empty, clean restructure); full build passes; no stale field references remain (grep clean); outlier math confirmed on synthetic data (3.0x with weak save/share correctly flagged Reach Outlier, 2.5x stays Semi-Good); analysis engine confirmed via claude-fable-5 — honors the Reels platform hint, returns click_confirmation/hook_commandments booleans, nulls YouTube-only gates on Reels. In-browser click-through still pending Nate's paste test (auth-cookie constraint in this environment).

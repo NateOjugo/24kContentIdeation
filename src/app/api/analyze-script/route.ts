@@ -18,13 +18,14 @@ export async function POST(req: Request) {
     );
   }
 
-  const { text } = await req.json();
+  const { text, platform } = await req.json();
   if (!text?.trim() || text.trim().length < 40) {
     return NextResponse.json({ error: "Paste a fuller script (40+ chars)" }, { status: 400 });
   }
+  const platformHint = platform === "Reels" || platform === "YouTube" ? platform : undefined;
 
   try {
-    const analysis = await analyzeStructure(text.trim(), "own");
+    const analysis = await analyzeStructure(text.trim(), "own", platformHint);
     return NextResponse.json(analysis);
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 502 });

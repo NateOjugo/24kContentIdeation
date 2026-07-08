@@ -46,12 +46,13 @@ const EMPTY: ScriptInput = {
   album_strategy_confirmed: null,
   views: null,
   followers_gained: null,
-  saves: null,
-  shares: null,
-  likes: null,
   comments: null,
-  retention_pct: null,
-  winning: false,
+  video_duration: null,
+  average_watch_time: null,
+  skip_rate: null,
+  share_rate: null,
+  like_rate: null,
+  save_rate: null,
   post_mortem_notes: null,
 };
 
@@ -126,13 +127,20 @@ export function ScriptForm({ script, prefill }: Props) {
   const lowShock =
     form.shock_value_score != null && form.shock_value_score < SHOCK_VALUE_THRESHOLD;
 
+  // retention_rate is computed (generated column) — show a live preview only.
+  const retentionPreview =
+    form.video_duration && form.video_duration > 0 && form.average_watch_time != null
+      ? (form.average_watch_time / form.video_duration) * 100
+      : null;
+
   function set<K extends keyof ScriptInput>(key: K, value: ScriptInput[K]) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
   const num = (v: string) => (v === "" ? null : Number(v));
 
-  // Structure Analysis — read the pasted script and auto-fill the Framework Tags.
+  // Structure Analysis — reads the pasted script (for the chosen platform) and
+  // auto-fills the Framework Tags + most of the Quality Gate.
   async function analyze() {
     const text = form.full_script_text?.trim();
     if (!text) {
@@ -145,24 +153,28 @@ export function ScriptForm({ script, prefill }: Props) {
       const res = await fetch("/api/analyze-script", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, platform: form.platform }),
       });
       const a = await res.json();
       if (!res.ok) throw new Error(a.error ?? `HTTP ${res.status}`);
+      const yt = form.platform === "YouTube";
       setForm((f) => ({
         ...f,
-        platform: a.platform,
         pillar: a.pillar,
         pillar_secondary: a.pillar_secondary ?? null,
         target_emotion: a.target_emotion,
         hook_format: a.hook_format,
-        story_structure: a.platform === "YouTube" ? a.story_structure : null,
+        story_structure: yt ? a.story_structure : null,
         loop_open: a.loop_open ?? null,
         loop_close: a.loop_close ?? null,
         shock_value_score: a.shock_value_score ?? null,
-        re_hook_count: a.platform === "YouTube" ? a.re_hook_count ?? null : null,
+        re_hook_count: yt ? a.re_hook_count ?? null : null,
         cta_type: a.cta_type ?? null,
-        // don't clobber a title Nate already typed
+        // auto-determined Quality Gate (atomic shareability stays manual)
+        click_confirmation_passed: a.click_confirmation_passed ?? null,
+        hook_commandments_passed: a.hook_commandments_passed ?? null,
+        dopamine_ladder_used: yt ? a.dopamine_ladder_used ?? null : null,
+        album_strategy_confirmed: yt ? a.album_strategy_confirmed ?? null : null,
         title: f.title.trim() ? f.title : a.suggested_title ?? "",
       }));
       setAnalyzed(true);
@@ -173,7 +185,6 @@ export function ScriptForm({ script, prefill }: Props) {
     }
   }
 
-  // Light review gate — the analysis fills these; you just confirm them.
   const gateErrors = useMemo(() => {
     const errs: string[] = [];
     if (!form.title.trim()) errs.push("Title");
@@ -187,6 +198,11 @@ export function ScriptForm({ script, prefill }: Props) {
     e.preventDefault();
     if (gateErrors.length > 0) {
       setError(`Review before saving — still needs: ${gateErrors.join(", ")}`);
+      return;
+    }
+    // Watch time needs its denominator to be meaningful.
+    if (form.average_watch_time != null && !form.video_duration) {
+      setError("Enter Video Duration so retention can be computed.");
       return;
     }
     setSaving(true);
@@ -219,9 +235,32 @@ export function ScriptForm({ script, prefill }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {/* 1 — Paste the finished script */}
+      {/* 1 — Platform first: the analyzer needs to know which structure to expect */}
       <Section
-        label={script ? "The Script" : "1 — Paste Your Finished Script"}
+        label={script ? "Platform" : "1 — Platform"}
+        hint="Pick this first — it tells the analysis which structure to read for (Reels single-loop vs YouTube StoryLoop)."
+      >
+        <div className="grid grid-cols-2 gap-2">
+          {PLATFORMS.map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => set("platform", p)}
+              className={`rounded-[3px] border px-3 py-3 text-sm font-medium transition-colors ${
+                form.platform === p
+                  ? "border-gold bg-gold/15 text-gold"
+                  : "border-white/10 bg-black/30 text-steel hover:text-cream"
+              }`}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+      </Section>
+
+      {/* 2 — Paste the finished script */}
+      <Section
+        label={script ? "The Script" : "2 — Paste Your Finished Script"}
         hint={
           script
             ? "Edit the text, then re-analyze if the structure changed. Saving updates this same entry."
@@ -250,9 +289,9 @@ export function ScriptForm({ script, prefill }: Props) {
         </div>
       </Section>
 
-      {/* 2 — Framework Tags (auto-detected, review & correct) */}
+      {/* 3 — Framework Tags (auto-detected, review & correct) */}
       <Section
-        label={script ? "Framework Tags" : "2 — Framework Tags"}
+        label={script ? "Framework Tags" : "3 — Framework Tags"}
         hint="Auto-detected from the script. Correct anything the analysis got wrong."
       >
         <Field label="Title (internal reference)" required>
@@ -262,25 +301,6 @@ export function ScriptForm({ script, prefill }: Props) {
             onChange={(e) => set("title", e.target.value)}
             placeholder="e.g. Stewardship Ep 3 — cold showers"
           />
-        </Field>
-
-        <Field label="Platform" required>
-          <div className="grid grid-cols-2 gap-2">
-            {PLATFORMS.map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => set("platform", p)}
-                className={`rounded-[3px] border px-3 py-2.5 text-sm font-medium transition-colors ${
-                  form.platform === p
-                    ? "border-gold bg-gold/15 text-gold"
-                    : "border-white/10 bg-black/30 text-steel hover:text-cream"
-                }`}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
         </Field>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -411,7 +431,7 @@ export function ScriptForm({ script, prefill }: Props) {
         </div>
 
         {isYouTube && (
-          <Field label="Re-Hook Count">
+          <Field label="Re-Hook Count (auto-detected)">
             <input
               type="number"
               min={0}
@@ -441,44 +461,66 @@ export function ScriptForm({ script, prefill }: Props) {
         </div>
       </Section>
 
-      {/* 3 — Quality Gate Snapshot (your self-assessment, not auto-detected) */}
+      {/* 4 — Quality Gate Snapshot (auto-determined; atomic shareability manual) */}
       <Section
-        label={script ? "Quality Gate Snapshot" : "3 — Quality Gate Snapshot"}
-        hint="Your own read on whether it followed the system. Tap to cycle: Pass → Fail → Not set."
+        label={script ? "Quality Gate Snapshot" : "4 — Quality Gate Snapshot"}
+        hint="Auto-determined from the script by the analysis. Atomic Shareability is yours to set — it needs visual judgment. Tap to cycle: Pass → Fail → Not set."
       >
         <div className="grid gap-2 sm:grid-cols-2">
-          <Toggle label="Click Confirmation (hook matches promise in 3s)" value={form.click_confirmation_passed} onChange={(v) => set("click_confirmation_passed", v)} />
-          <Toggle label="Atomic Shareability (one clip-and-send moment)" value={form.atomic_shareability_present} onChange={(v) => set("atomic_shareability_present", v)} />
-          <Toggle label="Hook Commandments (Alignment / Speed / Clarity / Curiosity)" value={form.hook_commandments_passed} onChange={(v) => set("hook_commandments_passed", v)} />
+          <Toggle label="Click Confirmation (auto)" value={form.click_confirmation_passed} onChange={(v) => set("click_confirmation_passed", v)} />
+          <Toggle label="Hook Commandments (auto)" value={form.hook_commandments_passed} onChange={(v) => set("hook_commandments_passed", v)} />
+          <Toggle label="Atomic Shareability (manual — your call)" value={form.atomic_shareability_present} onChange={(v) => set("atomic_shareability_present", v)} />
           {isYouTube && (
             <>
-              <Toggle label="Dopamine Ladder (micro-win every 15–30s)" value={form.dopamine_ladder_used} onChange={(v) => set("dopamine_ladder_used", v)} />
-              <Toggle label="Album Strategy (2nd best → best → 3rd best)" value={form.album_strategy_confirmed} onChange={(v) => set("album_strategy_confirmed", v)} />
+              <Toggle label="Dopamine Ladder (auto)" value={form.dopamine_ladder_used} onChange={(v) => set("dopamine_ladder_used", v)} />
+              <Toggle label="Album Strategy (auto)" value={form.album_strategy_confirmed} onChange={(v) => set("album_strategy_confirmed", v)} />
             </>
           )}
         </div>
       </Section>
 
-      {/* 4 — Performance (manual — not inferable from text) */}
+      {/* 5 — Performance (manual, IG-Insights rate metrics) */}
       <Section
-        label={script ? "Performance" : "4 — Performance"}
-        hint="Entered by hand — saves and shares weigh heaviest. Not inferable from the script text."
+        label={script ? "Performance" : "5 — Performance"}
+        hint="From Instagram Insights — entered by hand. Rates match Insights' own reporting. Not inferable from the script text."
       >
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <Field label="Views">
+            <input type="number" min={0} className="field-input" value={form.views ?? ""} onChange={(e) => set("views", num(e.target.value))} />
+          </Field>
+          <Field label="Video Duration (sec)">
+            <input type="number" min={0} className="field-input" value={form.video_duration ?? ""} onChange={(e) => set("video_duration", num(e.target.value))} />
+          </Field>
+          <Field label="Avg Watch Time (sec)">
+            <input type="number" min={0} step="0.1" className="field-input" value={form.average_watch_time ?? ""} onChange={(e) => set("average_watch_time", num(e.target.value))} />
+          </Field>
+        </div>
+
+        <div className="rounded-[3px] border border-white/8 bg-black/25 px-4 py-3">
+          <div className="flex items-center justify-between">
+            <span className="micro-label-steel">Retention Rate (computed)</span>
+            <span className="font-display text-2xl text-gold">
+              {retentionPreview != null ? `${retentionPreview.toFixed(1)}%` : "—"}
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-steel">avg watch time ÷ duration × 100. Filled automatically on save.</p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {(
             [
-              ["views", "Views"],
-              ["saves", "Saves"],
-              ["shares", "Shares"],
-              ["followers_gained", "Followers Gained"],
-              ["likes", "Likes"],
-              ["comments", "Comments"],
+              ["skip_rate", "Skip Rate %"],
+              ["save_rate", "Save Rate %"],
+              ["share_rate", "Share Rate %"],
+              ["like_rate", "Like Rate %"],
             ] as const
           ).map(([key, label]) => (
             <Field key={key} label={label}>
               <input
                 type="number"
                 min={0}
+                max={100}
+                step="0.1"
                 className="field-input"
                 value={form[key] ?? ""}
                 onChange={(e) => set(key, num(e.target.value))}
@@ -486,29 +528,19 @@ export function ScriptForm({ script, prefill }: Props) {
             </Field>
           ))}
         </div>
-        <Field label="Watch Time / Retention % (manual estimate)">
-          <input
-            type="number"
-            min={0}
-            max={100}
-            step="0.1"
-            className="field-input"
-            value={form.retention_pct ?? ""}
-            onChange={(e) => set("retention_pct", num(e.target.value))}
-          />
-        </Field>
-        <button
-          type="button"
-          onClick={() => set("winning", !form.winning)}
-          className={`flex w-full items-center justify-between rounded-[3px] border px-4 py-3 text-left transition-colors ${
-            form.winning ? "border-gold bg-gold/15" : "border-white/10 bg-black/30"
-          }`}
-        >
-          <span className={`text-sm font-semibold ${form.winning ? "text-gold" : "text-steel"}`}>Winning?</span>
-          <span className="micro-label-steel">
-            {form.winning ? <span className="text-gold">This one hit</span> : "Not flagged"}
-          </span>
-        </button>
+        <p className="text-xs text-steel">Save rate and share rate are the primary signals — they weigh heaviest in the Pattern Engine.</p>
+
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Comments">
+            <input type="number" min={0} className="field-input" value={form.comments ?? ""} onChange={(e) => set("comments", num(e.target.value))} />
+          </Field>
+          <Field label="Followers Gained">
+            <input type="number" min={0} className="field-input" value={form.followers_gained ?? ""} onChange={(e) => set("followers_gained", num(e.target.value))} />
+          </Field>
+        </div>
+        <p className="text-xs text-steel">
+          No manual &ldquo;Winning?&rdquo; toggle — the Vault computes an Outlier Score (Poor / Semi-Good / Amazing) from your Views against your own median.
+        </p>
       </Section>
 
       {error && (

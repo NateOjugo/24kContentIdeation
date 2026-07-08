@@ -61,31 +61,45 @@ export type Script = {
   original_draft_text: string | null;
   caption: string | null;
   date_posted: string | null;
+  // Quality Gate Snapshot — most auto-detected by Structure Analysis;
+  // atomic_shareability_present stays manual (needs visual judgment).
   click_confirmation_passed: boolean | null;
   atomic_shareability_present: boolean | null;
   hook_commandments_passed: boolean | null;
   dopamine_ladder_used: boolean | null;
   album_strategy_confirmed: boolean | null;
+  // Performance — IG-Insights-style rate metrics (percentages), not raw counts
   views: number | null;
   followers_gained: number | null;
-  saves: number | null;
-  shares: number | null;
-  likes: number | null;
   comments: number | null;
-  retention_pct: number | null;
-  winning: boolean;
+  video_duration: number | null; // seconds
+  average_watch_time: number | null; // seconds
+  retention_rate: number | null; // computed: average_watch_time / video_duration * 100
+  skip_rate: number | null; // % of views who skip within first 3s
+  share_rate: number | null; // % of views resulting in a share
+  like_rate: number | null; // % of views resulting in a like
+  save_rate: number | null; // % of views resulting in a save
   post_mortem_notes: string | null;
   created_at: string;
   updated_at: string;
 };
 
-export type ScriptInput = Omit<Script, "id" | "created_at" | "updated_at">;
+// retention_rate is a generated column — never written by the client.
+export type ScriptInput = Omit<
+  Script,
+  "id" | "created_at" | "updated_at" | "retention_rate"
+>;
 
 export const SHOCK_VALUE_THRESHOLD = 80;
+export const OUTLIER_MIN_SCRIPTS = 5; // baseline needs this many performance-logged scripts
 
-/** Saves + shares — the primary performance signal, weighted above views. */
-export function savesSharesWeight(s: Pick<Script, "saves" | "shares">): number {
-  return (s.saves ?? 0) + (s.shares ?? 0);
+/** Composite performance signal: save_rate + share_rate + retention_rate. */
+export function performanceScore(
+  s: Pick<Script, "save_rate" | "share_rate" | "retention_rate">
+): number | null {
+  const parts = [s.save_rate, s.share_rate, s.retention_rate];
+  if (parts.every((p) => p == null)) return null;
+  return (s.save_rate ?? 0) + (s.share_rate ?? 0) + (s.retention_rate ?? 0);
 }
 
 export function formatCount(n: number | null): string {

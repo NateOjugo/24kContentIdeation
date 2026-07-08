@@ -6,6 +6,7 @@ import { LearnFromEditButton } from "@/components/LearnFromEditButton";
 import { PostMortemEditor } from "@/components/PostMortemEditor";
 import { RepeatBuilderButton } from "@/components/RepeatBuilderButton";
 import { createClient } from "@/lib/supabase/server";
+import { computeOutliers } from "@/lib/outlier";
 import { formatCount, type Script } from "@/lib/scripts";
 
 function Tag({ children, gold }: { children: React.ReactNode; gold?: boolean }) {
@@ -44,13 +45,20 @@ export default async function ScriptDetail({
   if (!data) notFound();
   const s = data as Script;
 
-  const perf: [string, number | null][] = [
-    ["Views", s.views],
-    ["Saves", s.saves],
-    ["Shares", s.shares],
-    ["Followers", s.followers_gained],
-    ["Likes", s.likes],
-    ["Comments", s.comments],
+  // Outlier score is computed against the global median, so fetch the baseline.
+  const { data: baselineRows } = await supabase
+    .from("scripts")
+    .select("id, views, save_rate, share_rate");
+  const outlier = computeOutliers(baselineRows ?? []).get(s.id);
+
+  const pctStr = (v: number | null) => (v == null ? "—" : `${v.toFixed(1)}%`);
+  const perf: [string, string][] = [
+    ["Views", formatCount(s.views)],
+    ["Retention", pctStr(s.retention_rate)],
+    ["Save Rate", pctStr(s.save_rate)],
+    ["Share Rate", pctStr(s.share_rate)],
+    ["Like Rate", pctStr(s.like_rate)],
+    ["Skip Rate", pctStr(s.skip_rate)],
   ];
 
   return (
@@ -69,7 +77,7 @@ export default async function ScriptDetail({
           </div>
           <h1 className="font-display text-4xl tracking-wide text-cream">{s.title}</h1>
           <div className="mt-3 flex flex-wrap gap-1.5">
-            {s.winning && <Tag gold>Winning</Tag>}
+            {outlier?.established && <Tag gold>{outlier.label}</Tag>}
             <Tag>{s.platform}</Tag>
             <Tag>{s.pillar}</Tag>
             {s.pillar_secondary && <Tag>+{s.pillar_secondary}</Tag>}
@@ -87,30 +95,33 @@ export default async function ScriptDetail({
           <div className="grid grid-cols-3 gap-4 sm:grid-cols-6">
             {perf.map(([label, v]) => (
               <div key={label} className="text-center">
-                <div className="font-display text-2xl text-cream">{formatCount(v)}</div>
+                <div className="font-display text-2xl text-cream">{v}</div>
                 <div className="micro-label-steel mt-0.5">{label}</div>
               </div>
             ))}
           </div>
-          {(s.retention_pct != null || s.shock_value_score != null) && (
-            <div className="mt-4 flex flex-wrap gap-4 border-t border-white/8 pt-3 font-mono text-[11px] text-steel">
-              {s.shock_value_score != null && (
-                <span>
-                  Shock Value:{" "}
-                  <span className={s.shock_value_score < 80 ? "text-gold" : "text-cream"}>
-                    {s.shock_value_score}
-                    {s.shock_value_score < 80 && " (below threshold)"}
-                  </span>
+          <div className="mt-4 flex flex-wrap gap-4 border-t border-white/8 pt-3 font-mono text-[11px] text-steel">
+            {outlier?.established && (
+              <span>
+                Outlier: <span className="text-gold">{outlier.label}</span>{" "}
+                <span className="text-steel">({outlier.multiplier.toFixed(1)}x median views)</span>
+              </span>
+            )}
+            {s.comments != null && <span>Comments: <span className="text-cream">{formatCount(s.comments)}</span></span>}
+            {s.followers_gained != null && <span>Followers: <span className="text-cream">{formatCount(s.followers_gained)}</span></span>}
+            {s.shock_value_score != null && (
+              <span>
+                Shock Value:{" "}
+                <span className={s.shock_value_score < 80 ? "text-gold" : "text-cream"}>
+                  {s.shock_value_score}
+                  {s.shock_value_score < 80 && " (below threshold)"}
                 </span>
-              )}
-              {s.retention_pct != null && (
-                <span>Retention: <span className="text-cream">{s.retention_pct}%</span> (est.)</span>
-              )}
-              {s.re_hook_count != null && (
-                <span>Re-Hooks: <span className="text-cream">{s.re_hook_count}</span></span>
-              )}
-            </div>
-          )}
+              </span>
+            )}
+            {s.re_hook_count != null && (
+              <span>Re-Hooks: <span className="text-cream">{s.re_hook_count}</span></span>
+            )}
+          </div>
         </div>
 
         {(s.loop_open || s.loop_close) && (
