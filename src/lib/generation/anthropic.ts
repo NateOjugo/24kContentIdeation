@@ -1,11 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { GENERATION_MODEL } from "@/lib/models.config";
 
-// Model per build instructions: claude-fable-5, server-side only.
-// Fable 5: thinking always on (omit the param), no sampling params, and safety
-// classifiers can refuse — so we opt into the server-side fallback to Opus 4.8.
-export const GENERATION_MODEL = "claude-fable-5";
-const FALLBACK_MODEL = "claude-opus-4-8";
-
+// Model strings live ONLY in @/lib/models.config — never hardcode them here.
 export function anthropicConfigured(): boolean {
   return Boolean(process.env.ANTHROPIC_API_KEY);
 }
@@ -19,19 +15,17 @@ export function getClient(): Anthropic {
   return new Anthropic();
 }
 
-/** One-shot generation call with refusal handling and Opus fallback. */
+/** One-shot generation call (Sonnet 5, from the model config). */
 export async function generateText(opts: {
   system: string;
   prompt: string;
   maxTokens?: number;
-  effort?: "low" | "medium" | "high";
+  effort?: "low" | "medium" | "high" | "xhigh";
 }): Promise<string> {
   const client = getClient();
-  const response = await client.beta.messages.create({
+  const response = await client.messages.create({
     model: GENERATION_MODEL,
     max_tokens: opts.maxTokens ?? 8000,
-    betas: ["server-side-fallback-2026-06-01"],
-    fallbacks: [{ model: FALLBACK_MODEL }],
     system: opts.system,
     output_config: opts.effort ? { effort: opts.effort } : undefined,
     messages: [{ role: "user", content: opts.prompt }],
@@ -42,7 +36,7 @@ export async function generateText(opts: {
   }
 
   const text = response.content
-    .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text")
+    .filter((b): b is Anthropic.TextBlock => b.type === "text")
     .map((b) => b.text)
     .join("\n")
     .trim();

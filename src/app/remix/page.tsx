@@ -58,6 +58,9 @@ export default function RemixPage() {
   const [emotion, setEmotion] = useState<Emotion>("Awe");
   const [hookFormat, setHookFormat] = useState<HookFormat | "">("");
   const [storyStructure, setStoryStructure] = useState<StoryStructure | "">("");
+  // OFF by default on every session — never persisted. The source transcript is
+  // already a proven outlier; blending Vault patterns is an explicit opt-in.
+  const [blendPatterns, setBlendPatterns] = useState(false);
 
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -109,6 +112,7 @@ export default function RemixPage() {
           hookFormat,
           storyStructure,
           structureMap: structure?.structural_map,
+          blendPatterns,
         }),
       });
       const data = await res.json();
@@ -237,9 +241,29 @@ export default function RemixPage() {
 
             <button
               type="button"
+              onClick={() => setBlendPatterns((b) => !b)}
+              className={`mt-5 flex w-full items-center justify-between rounded-[3px] border px-4 py-3 text-left transition-colors ${
+                blendPatterns ? "border-gold bg-gold/15" : "border-white/10 bg-black/30"
+              }`}
+            >
+              <span>
+                <span className={`text-sm font-semibold ${blendPatterns ? "text-gold" : "text-steel"}`}>
+                  Blend with My Winning Patterns
+                </span>
+                <span className="mt-0.5 block text-xs text-steel">
+                  Off by default. The source is already a proven outlier — only add your Vault&rsquo;s Winning Formula when you want it to steer.
+                </span>
+              </span>
+              <span className="micro-label-steel shrink-0">
+                {blendPatterns ? <span className="text-gold">On</span> : "Off"}
+              </span>
+            </button>
+
+            <button
+              type="button"
               disabled={!take.trim() || generating}
               onClick={remix}
-              className="mt-5 w-full rounded-[3px] bg-gold px-4 py-3 text-sm font-semibold text-navy-deep transition-opacity hover:opacity-90 disabled:opacity-60"
+              className="mt-3 w-full rounded-[3px] bg-gold px-4 py-3 text-sm font-semibold text-navy-deep transition-opacity hover:opacity-90 disabled:opacity-60"
             >
               {generating ? "Remixing… this can take a minute or two" : `Generate ${platform} Remix`}
             </button>

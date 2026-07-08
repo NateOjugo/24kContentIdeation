@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { requireUser } from "@/lib/generation/routeAuth";
-import { anthropicConfigured, getClient, GENERATION_MODEL } from "@/lib/generation/anthropic";
+import { anthropicConfigured, getClient } from "@/lib/generation/anthropic";
+import { ANALYSIS_MODEL } from "@/lib/models.config";
 
 export const maxDuration = 180;
 
@@ -33,7 +34,7 @@ export async function POST() {
 
   const client = getClient();
   const response = await client.messages.parse({
-    model: GENERATION_MODEL,
+    model: ANALYSIS_MODEL,
     max_tokens: 4000,
     output_config: { format: zodOutputFormat(ConsolidatedSchema) },
     system:

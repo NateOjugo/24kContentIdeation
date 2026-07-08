@@ -7,7 +7,9 @@ import {
   fetchKnowledgeChunks,
   fetchVoiceCorrections,
 } from "@/lib/generation/retrieval";
-import { EMOTIONS, HOOK_FORMATS, PILLARS, PLATFORMS, STORY_STRUCTURES } from "@/lib/scripts";
+import { winningFormula } from "@/lib/patterns";
+import { computeOutliers } from "@/lib/outlier";
+import { EMOTIONS, HOOK_FORMATS, PILLARS, PLATFORMS, STORY_STRUCTURES, type Script } from "@/lib/scripts";
 
 export const maxDuration = 300;
 
@@ -25,6 +27,12 @@ export async function POST(req: Request) {
 
   const body = await req.json();
   const { take, title, platform, pillar, pillarSecondary, emotion, hookFormat, storyStructure, structureMap } = body;
+  // "Blend with My Winning Patterns" — OFF by default. The source transcript is
+  // typically already a proven outlier on its own channel, carrying real signal on
+  // its own. Blending it with separate Vault pattern data by default risks the
+  // model reconciling two different "proven structures" in one generation and
+  // producing something that follows neither cleanly. Keep it an explicit choice.
+  const blendPatterns = body.blendPatterns === true;
 
   if (
     !take?.trim() ||
@@ -48,6 +56,25 @@ export async function POST(req: Request) {
 
   const system = SCRIPT_SKILL_SYSTEM_PROMPT + voiceCorrectionsBlock(corrections);
 
+  // Only when explicitly toggled on: pull a short summary of the Vault's Winning
+  // Formula as supplementary grounding alongside the source structure.
+  let winningBlock = "";
+  if (blendPatterns) {
+    const { data: allScripts } = await supabase.from("scripts").select("*");
+    const all = (allScripts ?? []) as Script[];
+    const amazingIds = new Set(
+      [...computeOutliers(all).entries()]
+        .filter(([, o]) => o.established && o.tier === "Amazing")
+        .map(([id]) => id)
+    );
+    const formula = winningFormula(all, amazingIds);
+    if (formula) {
+      winningBlock =
+        `\nMY WINNING FORMULA (supplementary — my own top performers share this combo; lean toward it only where it doesn't fight the source structure):\n` +
+        formula.shared.map((s) => `- ${s.field}: ${s.value}`).join("\n");
+    }
+  }
+
   const prompt = [
     `This is a Transcript-to-Remix job. You are given a STRUCTURAL SKELETON pulled from a proven video, plus Nate's OWN take on a topic. Build a new ${platform} script that follows the proven structure but carries entirely Nate's material — never the source creator's content.`,
     ``,
@@ -70,6 +97,7 @@ export async function POST(req: Request) {
     chunks.length
       ? `\nRELEVANT STRATEGY NOTES:\n${chunks.map((c) => `[${c.source}]\n${c.content}`).join("\n\n")}`
       : ``,
+    winningBlock,
     ``,
     `Write the ${platform} script now, in the exact ${platform} output format.`,
   ]

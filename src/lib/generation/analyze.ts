@@ -1,6 +1,7 @@
 import { z } from "zod/v4";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
-import { getClient, GENERATION_MODEL } from "./anthropic";
+import { getClient } from "./anthropic";
+import { ANALYSIS_MODEL } from "@/lib/models.config";
 import {
   CTA_TYPES,
   EMOTIONS,
@@ -92,7 +93,7 @@ export async function analyzeStructure(
     : "";
 
   const response = await client.messages.parse({
-    model: GENERATION_MODEL,
+    model: ANALYSIS_MODEL,
     max_tokens: 3000,
     output_config: { format: zodOutputFormat(StructuralAnalysisSchema) },
     system: mode === "own" ? OWN_SYSTEM : TRANSCRIPT_SYSTEM,
