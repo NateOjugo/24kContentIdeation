@@ -249,7 +249,7 @@ SIX POWER WORDS:
   Proof: [... or "not used"]
   Time: [... or "not used"]
 HOOK FORMAT: [name]
-TEMPLATE USED: [the proven template name, or the library template verbatim, or "none — written from scratch"]
+TEMPLATE USED: [cite exactly one candidate label from the STEP 4B block verbatim, e.g. "L3 — adapted into a confession structure", or "none — written from scratch". Never cite a template that was not listed there.]
 THREE LAWS APPLIED: [one line on what 4c changed]
 EMOTION SELF-CHECK: [does the copy deliver the target emotion, or only describe it?]
 === SCRIPT ===

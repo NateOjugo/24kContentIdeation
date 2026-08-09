@@ -22,6 +22,7 @@ import {
   shockValueFactsBlock,
   hookTemplateCandidatesBlock,
   dedupeAgainstLibrary,
+  verifyTemplateCitation,
   type PowerWord,
   type Metaphor,
   type HookFormatTemplate,
@@ -128,6 +129,13 @@ export async function POST(req: Request) {
   // restate a template already shown above under Step 4B.
   const dedupedHookExamples = dedupeAgainstLibrary(hookExamples, templateLibrary);
 
+  const templateCandidates = hookTemplateCandidatesBlock({
+    proven: provenTemplates,
+    library: templateLibrary,
+    broaden,
+    hookFormat,
+  });
+
   // Order matters: voice first (Script Skill owns how it sounds), then the process
   // pipeline, then the Three Laws it defers to at Step 4c, then the retrieved material.
   const system =
@@ -138,12 +146,7 @@ export async function POST(req: Request) {
     REFERENCE_FRAMEWORK +
     shockValueFactsBlock(shockFacts) +
     sixPowerWordsBlock(sixPowerWords) +
-    hookTemplateCandidatesBlock({
-      proven: provenTemplates,
-      library: templateLibrary,
-      broaden,
-      hookFormat,
-    }) +
+    templateCandidates.text +
     bankMaterialBlock({ powerWords: powerWordRows, metaphor: metaphorRow, hookFormatTemplate: templateRow });
 
   const prompt = [
@@ -174,6 +177,8 @@ export async function POST(req: Request) {
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 502 });
   }
+
+  draft = verifyTemplateCitation(draft, templateCandidates.validLabels);
 
   const { data, error: insertError } = await supabase
     .from("scripts")
