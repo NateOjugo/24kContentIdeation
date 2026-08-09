@@ -210,9 +210,10 @@ Add these INTENSIFIERS only when they strengthen it:
 - Time: a timeframe adding urgency or scale ("in 5 months", "since September")
 
 ### 4b — Hook Format
-Pick the Hook Format from the confirmed Packaging Gate. Do not force a format that fights
-the material. If a hook format template is supplied as optional bank material, treat it as
-structural inspiration, not a fill-in-the-blank.
+The Hook Format is set by the confirmed Packaging Gate. If a STEP 4B block is supplied
+below, pick a template from it and follow its ranking rule: proven templates outrank
+library templates, and proven wins any tie. Treat every template as structural
+inspiration, not a fill-in-the-blank, and never leave a [bracketed] slot unfilled.
 
 ### 4c — Apply the Three Laws as refinement
 Now sharpen the assembled hook using the 24K Reference Framework below. It refines what
@@ -248,6 +249,7 @@ SIX POWER WORDS:
   Proof: [... or "not used"]
   Time: [... or "not used"]
 HOOK FORMAT: [name]
+TEMPLATE USED: [the proven template name, or the library template verbatim, or "none — written from scratch"]
 THREE LAWS APPLIED: [one line on what 4c changed]
 EMOTION SELF-CHECK: [does the copy deliver the target emotion, or only describe it?]
 === SCRIPT ===

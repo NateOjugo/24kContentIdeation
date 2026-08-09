@@ -16,8 +16,12 @@ import {
   bankMaterialBlock,
   fetchSixPowerWordsForNiche,
   fetchShockValueFacts,
+  fetchHookTemplateLibrary,
+  fetchHookFormatTemplates,
   sixPowerWordsBlock,
   shockValueFactsBlock,
+  hookTemplateCandidatesBlock,
+  dedupeAgainstLibrary,
   type PowerWord,
   type Metaphor,
   type HookFormatTemplate,
@@ -50,6 +54,7 @@ export async function POST(req: Request) {
     hookFormatId,
     metaphorId,
     powerWordIds,
+    broadenTemplates,
   } = body;
 
   if (
@@ -75,6 +80,8 @@ export async function POST(req: Request) {
     templateRow,
     sixPowerWords,
     shockFacts,
+    templateLibrary,
+    provenTemplates,
   ] = await Promise.all([
     fetchVoiceCorrections(supabase),
     fetchHookExamples(supabase, hookFormat, emotion),
@@ -106,7 +113,20 @@ export async function POST(req: Request) {
       : Promise.resolve(null),
     fetchSixPowerWordsForNiche(supabase, niche),
     fetchShockValueFacts(supabase, niche),
+    fetchHookTemplateLibrary(supabase, hookFormat),
+    fetchHookFormatTemplates(supabase),
   ]);
+
+  // Broaden to generic templates when this niche has no seeded material of its own
+  // (today: business, mindset). Derived from what was just fetched rather than a
+  // hardcoded niche list, so it stops broadening on its own once a niche fills in.
+  // `broadenTemplates` in the request overrides the automatic call either way.
+  const nicheIsThinlySeeded = sixPowerWords.length === 0 && shockFacts.length === 0;
+  const broaden = typeof broadenTemplates === "boolean" ? broadenTemplates : nicheIsThinlySeeded;
+
+  // The curated library is a subset of the raw swipe file, so drop raw examples that
+  // restate a template already shown above under Step 4B.
+  const dedupedHookExamples = dedupeAgainstLibrary(hookExamples, templateLibrary);
 
   // Order matters: voice first (Script Skill owns how it sounds), then the process
   // pipeline, then the Three Laws it defers to at Step 4c, then the retrieved material.
@@ -118,6 +138,12 @@ export async function POST(req: Request) {
     REFERENCE_FRAMEWORK +
     shockValueFactsBlock(shockFacts) +
     sixPowerWordsBlock(sixPowerWords) +
+    hookTemplateCandidatesBlock({
+      proven: provenTemplates,
+      library: templateLibrary,
+      broaden,
+      hookFormat,
+    }) +
     bankMaterialBlock({ powerWords: powerWordRows, metaphor: metaphorRow, hookFormatTemplate: templateRow });
 
   const prompt = [
@@ -129,8 +155,8 @@ export async function POST(req: Request) {
     `- Hook Format: ${hookFormat}`,
     ...(platform === "YouTube" ? [`- Story Structure: ${storyStructure}`] : []),
     ``,
-    hookExamples.length
-      ? `REFERENCE HOOKS from the hooks database (matching this format and emotion — use as raw material for hook style, not to copy verbatim):\n${hookExamples.map((h) => `- ${h}`).join("\n")}`
+    dedupedHookExamples.length
+      ? `REFERENCE HOOKS from the hooks database (matching this format and emotion — use as raw material for hook style, not to copy verbatim):\n${dedupedHookExamples.map((h) => `- ${h}`).join("\n")}`
       : ``,
     ``,
     chunks.length

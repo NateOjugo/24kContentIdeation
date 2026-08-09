@@ -190,3 +190,17 @@ Excluded `scripts/` from the app tsconfig so the verification utility doesn't af
 **Verified end-to-end with a real generation:** ran `masculinity-identity` / Problem format through the live pipeline. Retrieval pulled the seeded Eleazar fact (92) from the bank rather than inventing one; output contained the full PROCESS block (idea, facts with scores, outline, all six slots with Time correctly marked "not used", Three Laws note, emotion self-check) followed by an intact REELS format script using "therefore" per the voice rule, no em dashes in prose, an embedded metaphor, and a caption written as a positioning statement. Build passes; bank tables seeded (10 slot fillers, 3 facts).
 
 **Note:** the verification script (Eleazar grip, Reels) was left in the Vault rather than deleted — it is usable content, not a synthetic seed row.
+
+## Curated Hook Template Library (271 rows) ✅ (2026-08-08)
+
+**Imported** `hooks_database_curated.csv` → new `hook_template_library` table (271 rows, 0 rejects, every `hook_format` valid against the enum). Kept `source_category` from the CSV (dropped from the original spec) since it is the provenance link back to `hooks.category` / `FORMAT_CATEGORIES`. Dropped `notes`, which is fully derivable from `niche_relevant`.
+
+**Overlap check — the brief pointed at the wrong table.** `hook_formats` was empty (0 rows, not the 3 proven formats assumed), so the "proven outranks library" rule is built but currently has nothing to rank. The real overlap is with `hooks`: the 15 `source_category` values match `hooks.category` exactly, and 8/8 sampled templates already existed there — the curated set is a filtered subset of the 2,390-row Tier 2 import. Since `/api/hooks-generate` injects 15 random raw hooks per call, the same line could appear twice in one prompt, so `dedupeAgainstLibrary()` now strips raw examples that restate an injected library template.
+
+**Step 4b retrieval** (`hookTemplateCandidatesBlock`): proven `hook_formats` rows are listed first and the block states the ranking rule explicitly (proven outranks library, proven wins ties). Library rows are filtered to `niche_relevant` by default and broadened to generic when the niche is thinly seeded — derived from whether the niche has any `six_power_words`/`shock_value_facts` rather than a hardcoded niche list, so it self-corrects as niches fill in. `broadenTemplates` in the request overrides either way.
+
+**Distribution:** Personal Experience 83, Education 53, Secret Reveal 43, Question 32, Fortune Teller 19, Problem 18, Contrarian 14, Case Study 9. **`Comparison` and `Experimenter` have zero rows** — those formats fall through to the raw swipe file.
+
+**Verified with a real generation** on the `business` niche (thinly seeded, so it exercised auto-broaden): Step 2 correctly generated and scored its own facts (88/90/85) when the bank had none for that niche; Step 4b consulted the library and **declined it on voice grounds** — "library templates were generic CTA-style, this required a purpose-built contrarian snapback" — then wrote from scratch. Added `TEMPLATE USED:` to the PROCESS output so that choice is now visible provenance, not a black box.
+
+**Open quality note:** the Contrarian rows are largely generic clickbait ("You won't believe what happens next…") that fights Cold Iron voice, which is why the model rejected them. Rows with `has_placeholder=true` are structural scaffolds and adapt to voice far better than finished one-liners; preferring those in the ordering is an untested but likely improvement.

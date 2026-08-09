@@ -52,6 +52,21 @@ export type SandcastleImport = {
   created_at: string;
 };
 
+/** Curated swipe-file template. Distinct from HookFormatTemplate (`hook_formats`),
+ *  which is proven material with real performance data and always outranks these. */
+export type HookTemplateLibraryRow = {
+  id: string;
+  template: string;
+  example: string | null;
+  hook_format: string;
+  source_category: string | null;
+  niche_relevant: boolean;
+  has_placeholder: boolean;
+  source: string;
+  proven_in: string[];
+  created_at: string;
+};
+
 // --- Kallaway pipeline (Step 2 shock value, Step 4a six power words) ---
 
 /** Subject/Action/Objective/Contrast are required in every hook. Proof/Time are intensifiers. */
@@ -178,6 +193,107 @@ export async function fetchShockValueFacts(
     .order("shock_score", { ascending: false })
     .limit(limit);
   return (data as ShockValueFact[]) ?? [];
+}
+
+/** Step 4b candidates from the curated library, niche-relevant rows first.
+ *  Small per-format sets (9-83 rows), so fetch and split in memory rather than
+ *  round-tripping twice to decide whether to broaden. */
+export async function fetchHookTemplateLibrary(
+  supabase: SupabaseClient,
+  hookFormat: string,
+  limit = 40
+): Promise<HookTemplateLibraryRow[]> {
+  const { data } = await supabase
+    .from("hook_template_library")
+    .select("*")
+    .eq("hook_format", hookFormat)
+    .order("niche_relevant", { ascending: false })
+    .limit(limit);
+  return (data as HookTemplateLibraryRow[]) ?? [];
+}
+
+const normalizeForCompare = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+/** The curated library is a subset of the raw `hooks` swipe file, so the same line
+ *  can arrive from both sources in one prompt. Showing a curated template and its
+ *  raw twin side by side undercuts the curation, so drop the raw duplicate. */
+export function dedupeAgainstLibrary(
+  hookExamples: string[],
+  library: HookTemplateLibraryRow[]
+): string[] {
+  const templates = library
+    .map((t) => normalizeForCompare(t.template))
+    // very short templates would match too many unrelated lines by prefix
+    .filter((t) => t.length > 12);
+  if (!templates.length) return hookExamples;
+  return hookExamples.filter((ex) => {
+    const n = normalizeForCompare(ex);
+    return !templates.some((t) => n.startsWith(t));
+  });
+}
+
+/** Step 4b block. Proven material is listed first and explicitly ranked above the
+ *  library, so a swipe-file row can never silently outrank something with real
+ *  performance data behind it. `broaden` admits generic rows for niches that do
+ *  not have much of their own seeded material yet. */
+export function hookTemplateCandidatesBlock(opts: {
+  proven: HookFormatTemplate[];
+  library: HookTemplateLibraryRow[];
+  broaden: boolean;
+  hookFormat: string;
+}): string {
+  const { proven, library, broaden, hookFormat } = opts;
+
+  const nicheRows = library.filter((t) => t.niche_relevant);
+  const genericRows = library.filter((t) => !t.niche_relevant);
+  // Prefer niche-relevant. Fall back to generic when broadening, or when there is
+  // no niche-relevant material at all — an empty list helps nobody.
+  const chosen = broaden || nicheRows.length === 0 ? [...nicheRows, ...genericRows] : nicheRows;
+  const shown = chosen.slice(0, 12);
+
+  if (!proven.length && !shown.length) return "";
+
+  const parts: string[] = [
+    `\n\n## STEP 4B — HOOK TEMPLATE CANDIDATES (${hookFormat})`,
+    `RANKING RULE: proven templates outrank library templates, always. Use a library`,
+    `template only when no proven template fits the topic. On a tie, proven wins.`,
+  ];
+
+  if (proven.length) {
+    parts.push(
+      `\nPROVEN — real performance data behind these, prefer them:\n` +
+        proven
+          .map((p) => {
+            const posted = p.proven_in.length ? ` [proven in ${p.proven_in.length} posted script(s)]` : "";
+            return `- ${p.name}: ${p.template}${posted}${p.notes ? `\n    Notes: ${p.notes}` : ""}`;
+          })
+          .join("\n")
+    );
+  } else {
+    parts.push(`\nPROVEN: none recorded yet, so the library below is all that is available.`);
+  }
+
+  if (shown.length) {
+    const label = broaden
+      ? `LIBRARY — curated swipe file, broadened to generic templates because this niche has little seeded material yet`
+      : `LIBRARY — curated swipe file, filtered to niche-relevant templates`;
+    parts.push(
+      `\n${label}:\n` +
+        shown
+          .map((t) => {
+            const tag = t.niche_relevant ? "" : " (generic — swap the subject to fit the niche)";
+            const eg = t.example ? `\n    e.g. ${t.example}` : "";
+            return `- ${t.template}${tag}${eg}`;
+          })
+          .join("\n")
+    );
+    parts.push(
+      `\nTemplates with [bracketed] or ___ slots are scaffolding, not copy. Fill them with`,
+      `this creator's own material and rewrite in the 24K voice. Never ship a placeholder.`
+    );
+  }
+
+  return parts.join("\n");
 }
 
 /** Step 4a material, grouped so the model sees which slots it must fill vs may add. */
