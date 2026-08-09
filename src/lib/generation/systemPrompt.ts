@@ -157,6 +157,95 @@ OUTRO:
 Reels only: single loop (one open, one close), 30-60 second pacing.
 YouTube only: Dopamine Ladder present, Album Strategy applied (best point second), every transition has a Re-Hook, primary loop closes only at the end, 3 title options, 4-word thumbnail text, thumbnail visual direction.`;
 
+// Reference Framework for the Hooks Bank generation path only (/api/hooks-generate).
+// Distilled from real performance data (Stewardship Season, Godly Strength). Explicitly
+// informed defaults, not a checklist — do not retrofit into the plain /api/generate path.
+export const REFERENCE_FRAMEWORK = `# 24K SCRIPT GENERATION — REFERENCE FRAMEWORK
+
+This is a framework distilled from real performance data across the Stewardship Season and Godly Strength series. It represents patterns that have proven effective — not fixed requirements. Use it as a lens to strengthen a script, not a checklist every output must pass. Good judgment about the specific topic, audience, and moment always takes priority over mechanically applying these patterns.
+
+---
+
+## PATTERN 1 — PHYSICAL SPECIFICITY IN THE HOOK
+
+Abstract concepts tend to get routed slowly and hold attention less. Physical specificity — a body part, a symptom, a concrete failure — tends to get routed faster and hold retention longer.
+
+The viewer's brain visualizes physical detail instantly. Concepts make people think. Physical specificity makes people feel. When it fits naturally, naming something concrete in the first sentence tends to outperform naming something abstract.
+
+STRONG EXAMPLES:
+- "If you are celibate and not training your pelvic floor" — specific, physical, immediate
+- "You bench 225 and can't move a broken fridge across a room" — specific physical failure
+- "If you can lift heavy but your grip fails before your back does" — names the exact failure point
+
+WEAKER, MORE ABSTRACT EXAMPLES:
+- "Your nervous system is dysregulated" — clinical, less of a visual anchor
+- "You're not living up to your potential" — abstraction with no physical image
+
+When a hook feels too abstract, consider whether there's a more physical, concrete way to open it — but this is a tool to reach for, not a hard gate.
+
+---
+
+## PATTERN 2 — MEANING LAYERED INTO MOVEMENTS OR PRACTICES
+
+Often, the line that explains what a movement MEANS resonates more than the line that explains how to do it. Meaning tends to be what gets saved and shared. Pure instruction tends to be watched once and forgotten.
+
+Where it fits, a movement, practice, or action step can include a line connecting the physical action to a larger truth — identity, discipline, faith, dominance, whatever the content calls for.
+
+EXAMPLES WHERE THIS WORKED WELL:
+- Cable hip thrust: "Tension without hold doesn't build real strength."
+- Zercher lunge walks: "Discipline is in staying low."
+- Dead hangs: "Eleazar didn't let go until the battle was over. You don't get to let go either."
+
+This pattern is optional and situational. It fits especially well when:
+- The content is a physical demonstration and the emotional target is Awe or Conviction
+- The niche is faith-fitness or masculinity/identity
+
+It's often less necessary when:
+- The content is operational or tactical (business process, compliance, direct instruction) — the audience may just want the fast, clear answer
+- The content is pure information paired with a Shock-only target — the fact itself may already be the payload
+
+The agent should use judgment here rather than forcing a metaphor where it doesn't naturally belong, and a manual toggle should always be available to turn this on or off regardless of the default suggestion.
+
+---
+
+## PATTERN 3 — CAPTIONS AS POSITIONING, WHEN IT FITS
+
+A caption that promises something specific about who the creator is tends to build more follow-through than a caption that simply asks for a follow. Where it makes sense, consider having the caption communicate a commitment or point of view rather than just requesting an action.
+
+EXAMPLES:
+- "Celibacy is a commitment and nobody tells you your body still needs to be trained for it, but I will."
+- "Most men replace one outlet with nothing. That's why they're losing their edge."
+
+VS. MORE GENERIC OPTIONS:
+- "Follow for the full series"
+- "Stewardship season ep 2"
+
+This is a preference, not a rule — sometimes a direct, simple caption is exactly right for the moment.
+
+---
+
+## OPTIONAL SUPPORTING PATTERNS
+
+These are additional observations from the data that the agent can draw on as useful defaults, not mandates:
+
+**Pillar anchoring:** Content that's purely conceptual (faith-only, mindset-only) has sometimes performed better when paired with a physical or training element. Worth considering, not required.
+
+**Hook format:** The "Problem Format" — "If you are {identity} and {physical_failure} — that's not a {expected_diagnosis}. That's a {reframe}." — has performed well as a default starting point. For personal confession or disclosure content, opening in first person with the confession itself has also worked well.
+
+**Hook length:** Hooks around 15-20 words (4-6 seconds spoken) have tended to pair well with a short opening visual clip. Longer hooks aren't wrong, just worth being intentional about.
+
+**Camera vs. voiceover:** Voiceover-only has been the more consistent default. Speaking to camera has tended to work best for genuine personal confessions or credibility moments rather than instructional lines — though this is stylistic and can flex.
+
+**Shareability:** It's often worth including at least one line specific and unexpected enough that a viewer might screenshot or send it — a nice-to-have to check for, not a requirement to force.
+
+**Closing lines:** Echoing or resolving the hook's language in the closing line tends to feel more complete than introducing a brand new phrase — a helpful habit, not a fixed rule.
+
+**Pacing:** Keeping the distance between the hook and the first real payoff short has generally helped retention — a good instinct to lean on, adjustable based on the content.
+
+---
+
+The agent should treat this framework as a set of informed defaults it can pull from selectively, combine with its own judgment, or set aside entirely when the topic, format, or creative direction calls for something different.`;
+
 export type VoiceCorrection = { rule: string; reinforced_count: number };
 
 /** Voice Correction Log lives in Tier 1 but is capped at ~30 entries. */
