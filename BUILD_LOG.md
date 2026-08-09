@@ -168,3 +168,25 @@ Excluded `scripts/` from the app tsconfig so the verification utility doesn't af
 **3. Compare Scripts** (`/compare` + `CompareScripts.tsx` + `/api/compare`): multi-select 2+ performance-tracked scripts → side-by-side table of every Framework Tag, Quality Gate result, and Performance metric, with differing rows highlighted (gold dot + tint) → "Explain the Performance Gap" runs a Haiku diagnostic. **Works for any script with real performance data, filtered by `hasPerf` (not generation origin)** — so manually-logged past videos with their Instagram Insights numbers are first-class comparison points against each other and against dashboard-generated ones.
 
 **Verified:** build passes with `/compare` + `/api/compare`; all three required checks confirmed — (1) no Fable/Opus calls remain, (2) Remix toggle defaults OFF every session with no persistence, (3) Compare selects by performance-data presence, not generation origin. Live model check passed for both Sonnet 5 and Haiku 4.5.
+
+## Hooks Bank + Kallaway 5-Step Pipeline ✅ (2026-08-08)
+
+**Why:** the power-words / metaphors / hook-format material lived nowhere, and generation had no enforced build order — the Script Skill described the destination but not the sequence to get there.
+
+**Built — the bank** (`/hooks` + `src/lib/hooksBank.ts` + `/api/hooks-generate`):
+- Four tables: `hook_formats` (custom structural templates), `power_words` (tagged by `fn`, niche-filtered), `metaphors` (concrete anchor → meaning layer), `sandcastles_imports` (bulk-paste staging queue with promote/dismiss review).
+- Provenance on the existing `scripts` table instead of a separate `generated_scripts` table: `hook_format_id`, `metaphor_id`, `power_words_used`. **Deliberate** — one dataset keeps Pattern Engine, Outlier scoring, and performance logging working on everything. `power_words_used` stores power_word ids (not phrase text) so it stays joinable if a phrase is later edited.
+- `/hooks` performance table is read-only and links out to the existing `/scripts/[id]/edit` flow rather than duplicating `ScriptForm`'s Performance section.
+
+**Built — the pipeline** (`KALLAWAY_PIPELINE` in `generation/systemPrompt.ts`):
+- Kallaway's 5 steps (Packaging → Shock Value 80/100 filter → Outline uniqueness check → Hook via Six Power Words → Emotional Transfer) as the ordered build process for `/api/hooks-generate` only. `/api/generate` untouched, so the two approaches can be A/B'd against real performance data.
+- **Composition, not replacement:** `SCRIPT_SKILL_SYSTEM_PROMPT` still owns voice (Cold Iron, no em dashes, therefore/but, Physical-First, platform output formats). The pipeline owns order. The Three Laws (`REFERENCE_FRAMEWORK`) enter at Step 4c as niche refinement. Output is a PROCESS block followed by the **unchanged** REELS/YOUTUBE format so `analyzeStructure` keeps parsing generated drafts.
+- `six_power_words` (Step 4a) has a CHECK constraint tying `is_core` to `slot` — core-ness is a property of the slot (Subject/Action/Objective/Contrast), not of the row, so the two can't drift.
+- `shock_value_facts` (Step 2) has a partial index on `shock_score >= 80`; retrieval never surfaces sub-80 rows since the pipeline would discard them anyway. The manager UI still lists them and warns.
+- Added `Experimenter` to `hook_format_t` (referenced by the source framework, previously nonexistent) plus its `FORMAT_CATEGORIES` entry, which the `Record<HookFormat, string[]>` type requires or the build breaks.
+
+**Skipped as redundant** (flagged rather than silently duplicated): a `story_structures` table — all 7 structures and their outlines already live in the Script Skill, and the proposed table held only 4; and `emotional_transfer_targets` — that is `emotion_t` with different casing (amusement→Humor, sadness→Empathy).
+
+**Verified end-to-end with a real generation:** ran `masculinity-identity` / Problem format through the live pipeline. Retrieval pulled the seeded Eleazar fact (92) from the bank rather than inventing one; output contained the full PROCESS block (idea, facts with scores, outline, all six slots with Time correctly marked "not used", Three Laws note, emotion self-check) followed by an intact REELS format script using "therefore" per the voice rule, no em dashes in prose, an embedded metaphor, and a caption written as a positioning statement. Build passes; bank tables seeded (10 slot fillers, 3 facts).
+
+**Note:** the verification script (Eleazar grip, Reels) was left in the Vault rather than deleted — it is usable content, not a synthetic seed row.
