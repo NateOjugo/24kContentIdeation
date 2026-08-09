@@ -1,13 +1,27 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/generation/routeAuth";
 import { anthropicConfigured, generateText } from "@/lib/generation/anthropic";
-import { SCRIPT_SKILL_SYSTEM_PROMPT, REFERENCE_FRAMEWORK, voiceCorrectionsBlock } from "@/lib/generation/systemPrompt";
+import {
+  SCRIPT_SKILL_SYSTEM_PROMPT,
+  KALLAWAY_PIPELINE,
+  REFERENCE_FRAMEWORK,
+  voiceCorrectionsBlock,
+} from "@/lib/generation/systemPrompt";
 import {
   fetchHookExamples,
   fetchKnowledgeChunks,
   fetchVoiceCorrections,
 } from "@/lib/generation/retrieval";
-import { bankMaterialBlock, type PowerWord, type Metaphor, type HookFormatTemplate } from "@/lib/hooksBank";
+import {
+  bankMaterialBlock,
+  fetchSixPowerWordsForNiche,
+  fetchShockValueFacts,
+  sixPowerWordsBlock,
+  shockValueFactsBlock,
+  type PowerWord,
+  type Metaphor,
+  type HookFormatTemplate,
+} from "@/lib/hooksBank";
 import { EMOTIONS, HOOK_FORMATS, PILLARS, PLATFORMS, STORY_STRUCTURES } from "@/lib/scripts";
 
 export const maxDuration = 300;
@@ -52,7 +66,16 @@ export async function POST(req: Request) {
 
   const powerWordIdsArr: string[] = Array.isArray(powerWordIds) ? powerWordIds : [];
 
-  const [corrections, hookExamples, chunks, powerWordRows, metaphorRow, templateRow] = await Promise.all([
+  const [
+    corrections,
+    hookExamples,
+    chunks,
+    powerWordRows,
+    metaphorRow,
+    templateRow,
+    sixPowerWords,
+    shockFacts,
+  ] = await Promise.all([
     fetchVoiceCorrections(supabase),
     fetchHookExamples(supabase, hookFormat, emotion),
     accessToken
@@ -81,13 +104,20 @@ export async function POST(req: Request) {
           .single()
           .then((r) => (r.data as Pick<HookFormatTemplate, "name" | "template" | "notes"> | null) ?? null)
       : Promise.resolve(null),
+    fetchSixPowerWordsForNiche(supabase, niche),
+    fetchShockValueFacts(supabase, niche),
   ]);
 
+  // Order matters: voice first (Script Skill owns how it sounds), then the process
+  // pipeline, then the Three Laws it defers to at Step 4c, then the retrieved material.
   const system =
     SCRIPT_SKILL_SYSTEM_PROMPT +
     voiceCorrectionsBlock(corrections) +
+    KALLAWAY_PIPELINE +
     "\n\n" +
     REFERENCE_FRAMEWORK +
+    shockValueFactsBlock(shockFacts) +
+    sixPowerWordsBlock(sixPowerWords) +
     bankMaterialBlock({ powerWords: powerWordRows, metaphor: metaphorRow, hookFormatTemplate: templateRow });
 
   const prompt = [
@@ -107,7 +137,7 @@ export async function POST(req: Request) {
       ? `RELEVANT STRATEGY NOTES retrieved from the knowledge base:\n${chunks.map((c) => `[${c.source}]\n${c.content}`).join("\n\n")}`
       : ``,
     ``,
-    `Write the ${platform} script now, in the exact ${platform} output format from the system instructions.`,
+    `Run the full generation pipeline now, Steps 1 through 5 in order. Return the PROCESS block, then the ${platform} script in the exact ${platform} output format from the system instructions.`,
   ]
     .filter((l) => l !== "")
     .join("\n");

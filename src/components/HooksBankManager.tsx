@@ -4,11 +4,17 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   POWER_WORD_FUNCTIONS,
+  POWER_WORD_SLOTS,
+  CORE_SLOTS,
+  SHOCK_VALUE_GATE,
   normalizeNiche,
   type HookFormatTemplate,
   type Metaphor,
   type PowerWord,
   type PowerWordFn,
+  type PowerWordSlot,
+  type SixPowerWord,
+  type ShockValueFact,
 } from "@/lib/hooksBank";
 
 function Section({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
@@ -38,17 +44,85 @@ export function HooksBankManager({
   initialPowerWords,
   initialMetaphors,
   initialHookFormatTemplates,
+  initialSixPowerWords,
+  initialShockValueFacts,
 }: {
   initialPowerWords: PowerWord[];
   initialMetaphors: Metaphor[];
   initialHookFormatTemplates: HookFormatTemplate[];
+  initialSixPowerWords: SixPowerWord[];
+  initialShockValueFacts: ShockValueFact[];
 }) {
   const supabase = createClient();
 
   const [powerWords, setPowerWords] = useState(initialPowerWords);
   const [metaphors, setMetaphors] = useState(initialMetaphors);
   const [templates, setTemplates] = useState(initialHookFormatTemplates);
+  const [sixWords, setSixWords] = useState(initialSixPowerWords);
+  const [facts, setFacts] = useState(initialShockValueFacts);
   const [error, setError] = useState<string | null>(null);
+
+  // Six Power Words add-form. is_core is derived from the slot, never entered by hand —
+  // the DB has a CHECK enforcing the same rule.
+  const [spwSlot, setSpwSlot] = useState<PowerWordSlot>("subject");
+  const [spwExample, setSpwExample] = useState("");
+  const [spwNiche, setSpwNiche] = useState("");
+  const [spwSaving, setSpwSaving] = useState(false);
+
+  async function addSixPowerWord() {
+    if (!spwExample.trim()) return;
+    setSpwSaving(true);
+    setError(null);
+    const isCore = (CORE_SLOTS as readonly string[]).includes(spwSlot);
+    const { data, error: err } = await supabase
+      .from("six_power_words")
+      .insert({ slot: spwSlot, example: spwExample.trim(), niche: splitNiches(spwNiche), is_core: isCore })
+      .select("*")
+      .single();
+    setSpwSaving(false);
+    if (err) return setError(err.message);
+    setSixWords((s) => [data as SixPowerWord, ...s]);
+    setSpwExample("");
+    setSpwNiche("");
+  }
+
+  // Shock Value Facts add-form
+  const [svFact, setSvFact] = useState("");
+  const [svTopic, setSvTopic] = useState("");
+  const [svNiche, setSvNiche] = useState("");
+  const [svScore, setSvScore] = useState("");
+  const [svExpectation, setSvExpectation] = useState("");
+  const [svReality, setSvReality] = useState("");
+  const [svSaving, setSvSaving] = useState(false);
+
+  const svScoreNum = svScore === "" ? null : Number(svScore);
+  const svBelowGate = svScoreNum != null && svScoreNum < SHOCK_VALUE_GATE;
+
+  async function addShockValueFact() {
+    if (!svFact.trim() || !svTopic.trim() || !svNiche.trim() || svScoreNum == null) return;
+    setSvSaving(true);
+    setError(null);
+    const { data, error: err } = await supabase
+      .from("shock_value_facts")
+      .insert({
+        fact: svFact.trim(),
+        topic: svTopic.trim(),
+        niche: normalizeNiche(svNiche),
+        shock_score: svScoreNum,
+        expectation: svExpectation.trim() || null,
+        reality: svReality.trim() || null,
+      })
+      .select("*")
+      .single();
+    setSvSaving(false);
+    if (err) return setError(err.message);
+    setFacts((f) => [data as ShockValueFact, ...f]);
+    setSvFact("");
+    setSvTopic("");
+    setSvScore("");
+    setSvExpectation("");
+    setSvReality("");
+  }
 
   // Power word add-form
   const [pwPhrase, setPwPhrase] = useState("");
@@ -120,6 +194,115 @@ export function HooksBankManager({
 
   return (
     <div className="space-y-5">
+      <Section
+        label="Shock Value Facts"
+        hint={`Step 2 of the pipeline. Score the gap between what the audience believes and what you're revealing. Anything under ${SHOCK_VALUE_GATE} is common knowledge and never gets retrieved.`}
+      >
+        <Field label="Fact">
+          <textarea rows={2} className="field-input" value={svFact} onChange={(e) => setSvFact(e.target.value)} placeholder="David killed a lion and a bear with his bare hands before facing Goliath" />
+        </Field>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Field label="Topic">
+            <input className="field-input" value={svTopic} onChange={(e) => setSvTopic(e.target.value)} placeholder="David rotational power" />
+          </Field>
+          <Field label="Niche">
+            <input className="field-input" value={svNiche} onChange={(e) => setSvNiche(e.target.value)} placeholder="masculinity-identity" />
+          </Field>
+          <Field label="Shock Score (1–100)">
+            <input type="number" min={1} max={100} className="field-input" value={svScore} onChange={(e) => setSvScore(e.target.value)} />
+            {svBelowGate && (
+              <p className="mt-1.5 text-xs text-gold">Below {SHOCK_VALUE_GATE}. It saves, but generation will never pull it.</p>
+            )}
+          </Field>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Expectation (what they believe now)">
+            <input className="field-input" value={svExpectation} onChange={(e) => setSvExpectation(e.target.value)} placeholder="David got lucky with the stone" />
+          </Field>
+          <Field label="Reality (what you're revealing)">
+            <input className="field-input" value={svReality} onChange={(e) => setSvReality(e.target.value)} placeholder="He had years of proven combat training" />
+          </Field>
+        </div>
+        <button
+          type="button"
+          onClick={addShockValueFact}
+          disabled={svSaving || !svFact.trim() || !svTopic.trim() || !svNiche.trim() || svScoreNum == null}
+          className="rounded-[3px] bg-gold px-4 py-2.5 text-sm font-semibold text-navy-deep transition-opacity hover:opacity-90 disabled:opacity-50"
+        >
+          {svSaving ? "Adding…" : "Add Fact"}
+        </button>
+        {facts.length > 0 && (
+          <ul className="mt-2 space-y-1.5">
+            {facts.map((f) => (
+              <li key={f.id} className="rounded-[3px] border border-white/8 bg-black/25 px-3 py-2 text-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <span className="text-cream">{f.fact}</span>
+                  <span className={`shrink-0 font-mono text-[11px] font-bold ${f.shock_score >= SHOCK_VALUE_GATE ? "text-gold" : "text-steel/60"}`}>
+                    {f.shock_score}
+                  </span>
+                </div>
+                <div className="micro-label-steel mt-1">{f.niche} · {f.topic}</div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Section>
+
+      <Section
+        label="Six Power Words"
+        hint="Step 4a. Subject / Action / Objective / Contrast are required in every hook. Proof and Time are optional intensifiers."
+      >
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Field label="Slot">
+            <select className="field-input" value={spwSlot} onChange={(e) => setSpwSlot(e.target.value as PowerWordSlot)}>
+              {POWER_WORD_SLOTS.map((s) => (
+                <option key={s} value={s}>
+                  {s}{(CORE_SLOTS as readonly string[]).includes(s) ? " (core)" : " (intensifier)"}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Example">
+            <input className="field-input" value={spwExample} onChange={(e) => setSpwExample(e.target.value)} placeholder="dropped a nine foot giant" />
+          </Field>
+          <Field label="Niches (comma separated)">
+            <input className="field-input" value={spwNiche} onChange={(e) => setSpwNiche(e.target.value)} placeholder="masculinity-identity" />
+          </Field>
+        </div>
+        <button
+          type="button"
+          onClick={addSixPowerWord}
+          disabled={spwSaving || !spwExample.trim()}
+          className="rounded-[3px] bg-gold px-4 py-2.5 text-sm font-semibold text-navy-deep transition-opacity hover:opacity-90 disabled:opacity-50"
+        >
+          {spwSaving ? "Adding…" : "Add Slot Filler"}
+        </button>
+        {sixWords.length > 0 && (
+          <div className="mt-2 space-y-3">
+            {POWER_WORD_SLOTS.map((slot) => {
+              const rows = sixWords.filter((w) => w.slot === slot);
+              if (!rows.length) return null;
+              return (
+                <div key={slot}>
+                  <div className="micro-label-steel mb-1.5">
+                    {slot}
+                    {(CORE_SLOTS as readonly string[]).includes(slot) && <span className="text-gold"> · core</span>}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {rows.map((w) => (
+                      <span key={w.id} className="rounded-[3px] border border-white/10 bg-black/30 px-3 py-1.5 text-xs text-cream">
+                        {w.example}
+                        {w.niche.length > 0 && <span className="ml-2 text-steel/70">{w.niche.join(", ")}</span>}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Section>
+
       <Section label="Power Words" hint="Tagged by function, filtered by niche when generating.">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Phrase">

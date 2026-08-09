@@ -22,6 +22,7 @@ export const HOOK_FORMATS = [
   "Contrarian",
   "Personal Experience",
   "Fortune Teller",
+  "Experimenter",
 ] as const;
 export const STORY_STRUCTURES = [
   "Breakdown",

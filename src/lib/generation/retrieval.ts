@@ -15,6 +15,7 @@ const FORMAT_CATEGORIES: Record<HookFormat, string[]> = {
   Contrarian: ["All Shocking Truths & Discoveries Hooks", "High Impact Scroll-Stoppers", "100 Alex Hormozi Hooks"],
   "Personal Experience": ["All Storytelling Hooks", "All Relatable Hooks", "All Inspirational and Motivational Hooks"],
   "Fortune Teller": ["All Trending Topics & Current Events Hooks", "All Curiosity-Driven Hooks"],
+  Experimenter: ["All Curiosity-Driven Hooks", "All Shocking Truths & Discoveries Hooks", "High Impact Scroll-Stoppers"],
 };
 
 const EMOTION_CATEGORIES: Record<Emotion, string[]> = {

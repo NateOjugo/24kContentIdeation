@@ -157,6 +157,106 @@ OUTRO:
 Reels only: single loop (one open, one close), 30-60 second pacing.
 YouTube only: Dopamine Ladder present, Album Strategy applied (best point second), every transition has a Re-Hook, primary loop closes only at the end, 3 title options, 4-word thumbnail text, thumbnail visual direction.`;
 
+// Kallaway's 5-step scriptwriting system, used by /api/hooks-generate only.
+// Deliberately governs PROCESS (what order to build in), never VOICE — Voice DNA,
+// punctuation rules, and the platform output formats stay owned by
+// SCRIPT_SKILL_SYSTEM_PROMPT above, which this prompt is appended to.
+// The Three Laws (REFERENCE_FRAMEWORK below) enter at Step 4c as refinement.
+export const KALLAWAY_PIPELINE = `
+
+# GENERATION PIPELINE — BUILD THE SCRIPT IN THIS ORDER
+
+The Script Skill above governs how the writing SOUNDS and the exact output format.
+This section governs the ORDER you build in. Do not skip or reorder steps.
+
+## STEP 1 — PACKAGING (measure twice, cut once)
+Lock these before writing any hook or body copy:
+- The Idea: one sentence naming the pain point solved or the curiosity gap opened.
+- The Title: sets viewer expectation. The intro's job is to confirm it (Click Confirmation).
+- Thumbnail concept: loose is fine, but it must align with the story told.
+
+## STEP 2 — SHOCK VALUE RESEARCH (the 80/100 filter)
+Score candidate facts 1-100 on the gap between what the audience currently believes
+(Expectation) and what you are revealing (Reality).
+
+RULE: anything below 80 is common knowledge. Discard it. Build only on 80+ material.
+
+If a SHOCK VALUE BANK is supplied below, those facts already cleared the gate — prefer
+them. If not, generate 5-10 candidates, score them by this logic, and discard the sub-80
+ones before continuing.
+
+## STEP 3 — THE OUTLINE (uniqueness check)
+Outline the body points before writing the intro. For each: what it is, why it matters,
+how it fits the overall story.
+
+RULE: if the points only restate common knowledge, do not proceed. Find a more novel
+angle or a more specific version of the claim first.
+
+Then name the Story Structure you are using. Use the Story Structures list in the Script
+Skill above (Breakdown, Problem Solver, Case Study, Personal Story, Newscaster, Listicle,
+Tutorial) and follow that structure's stated shape.
+
+## STEP 4 — THE HOOK
+
+### 4a — Six Power Words (construction formula)
+Every hook must contain all four CORE elements:
+- Subject: who it is about (a name, "you", "I", a specific noun)
+- Action: what they did or are doing
+- Objective: the result or end state, the more shocking the better
+- Contrast: the gap between where they started and where they ended up
+
+Add these INTENSIFIERS only when they strengthen it:
+- Proof: why the claim is trustworthy (credentials, "I lived it", data)
+- Time: a timeframe adding urgency or scale ("in 5 months", "since September")
+
+### 4b — Hook Format
+Pick the Hook Format from the confirmed Packaging Gate. Do not force a format that fights
+the material. If a hook format template is supplied as optional bank material, treat it as
+structural inspiration, not a fill-in-the-blank.
+
+### 4c — Apply the Three Laws as refinement
+Now sharpen the assembled hook using the 24K Reference Framework below. It refines what
+Steps 4a/4b produced; it does not replace them. In particular: make the Subject/Objective
+physically specific where natural (Law 1), layer an embedded metaphor when the content is
+movement or practice based (Law 2), and write the caption as a positioning statement
+rather than a generic CTA (Law 3).
+
+### 4d — Verify the Hook Commandments
+Alignment, Speed, Clarity, Curiosity — as defined in the Script Skill above.
+
+## STEP 5 — EMOTIONAL TRANSFER (engagement filter)
+The Target Emotion is set by the Packaging Gate. Before returning output, read the script
+back and ask whether it actually makes someone FEEL that emotion or merely describes it.
+If it only describes it, rewrite the phrasing to be more visceral.
+
+---
+
+# OUTPUT SHAPE
+
+Return a PROCESS BLOCK first, then the script itself.
+
+=== PROCESS ===
+IDEA: [one sentence]
+SHOCK VALUE FACTS USED: [each with its score, e.g. "David killed a lion and a bear (93)"]
+STORY STRUCTURE: [name]
+OUTLINE: [bulleted body points]
+SIX POWER WORDS:
+  Subject: [...]
+  Action: [...]
+  Objective: [...]
+  Contrast: [...]
+  Proof: [... or "not used"]
+  Time: [... or "not used"]
+HOOK FORMAT: [name]
+THREE LAWS APPLIED: [one line on what 4c changed]
+EMOTION SELF-CHECK: [does the copy deliver the target emotion, or only describe it?]
+=== SCRIPT ===
+
+Then the complete script in the exact platform output format specified in the Script Skill
+above (REELS OUTPUT FORMAT or YOUTUBE OUTPUT FORMAT). Do not alter that format — the Vault
+parses it. The closing line must echo or resolve the hook's language, and the caption must
+be a positioning statement per Law 3.`;
+
 // Reference Framework for the Hooks Bank generation path only (/api/hooks-generate).
 // Distilled from real performance data (Stewardship Season, Godly Strength). Explicitly
 // informed defaults, not a checklist — do not retrofit into the plain /api/generate path.
