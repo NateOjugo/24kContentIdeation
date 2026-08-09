@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>24K.OJAY — Content Ideation System</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0A1628;--navy-mid:#0F1F3D;--navy-light:#162845;
+  --gold:#C9A84C;--gold-light:#E8C96A;--gold-dim:#8B6E2E;
+  --steel:#7A8FA6;--steel-light:#A8BCCF;
+  --off-white:#F0EDE6;--warm-gray:#C4BDB0;
+  --charcoal:#1C2B3A;--black:#070D18;--text-body:#D4CECC;
+  --green:#7BC67E;--red:#E07A7A;
+  --baseline:#9B6DFF;--baseline-light:#B794FF;
+}
+html{scroll-behavior:smooth}
+body{background:var(--black);color:var(--off-white);font-family:'DM Sans',sans-serif;font-size:15px;line-height:1.6;overflow-x:hidden}
+
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");opacity:.03;pointer-events:none;z-index:9999}
+
+.container{max-width:1100px;margin:0 auto;padding:0 28px}
+
+/* HERO */
+.hero{padding:72px 0 56px;border-bottom:1px solid rgba(201,168,76,.15);position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 80% 40%,rgba(201,168,76,.05) 0%,transparent 60%),repeating-linear-gradient(90deg,rgba(201,168,76,.025) 0px,rgba(201,168,76,.025) 1px,transparent 1px,transparent 100px)}
+.eyebrow{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.25em;color:var(--gold);text-transform:uppercase;margin-bottom:20px;display:flex;align-items:center;gap:12px}
+.eyebrow::before{content:'';width:32px;height:1px;background:var(--gold)}
+h1.brand{font-family:'Bebas Neue',sans-serif;font-size:clamp(52px,8vw,96px);line-height:.9;letter-spacing:.02em;color:var(--off-white);margin-bottom:20px}
+h1.brand span{color:var(--gold)}
+.hero-meta{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.15em;color:var(--steel);text-transform:uppercase;margin-top:12px}
+
+/* FILTERS */
+.filter-bar{padding:32px 0 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:1px solid rgba(255,255,255,.05)}
+.filter-label{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.2em;color:var(--steel);text-transform:uppercase;margin-right:4px}
+.filter-btn{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:7px 16px;border:1px solid rgba(255,255,255,.1);border-radius:2px;background:transparent;color:var(--steel);cursor:pointer;transition:all .2s}
+.filter-btn:hover{color:var(--off-white);border-color:rgba(255,255,255,.25)}
+.filter-btn.active{background:var(--gold);color:var(--navy);border-color:var(--gold);font-weight:700}
+.filter-btn.pillar-train.active{background:var(--steel-light);color:var(--navy);border-color:var(--steel-light)}
+.filter-btn.pillar-live.active{background:var(--gold-light);color:var(--navy);border-color:var(--gold-light)}
+.filter-btn.pillar-larp.active{background:var(--green);color:var(--navy);border-color:var(--green)}
+.filter-btn.pillar-baseline.active{background:var(--baseline);color:var(--navy);border-color:var(--baseline)}
+
+.search-wrap{margin-left:auto}
+.search-input{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:2px;padding:7px 14px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--off-white);outline:none;width:220px;transition:border-color .2s}
+.search-input::placeholder{color:var(--steel)}
+.search-input:focus{border-color:rgba(201,168,76,.4)}
+
+/* STATS BAR */
+.stats-bar{padding:20px 0;display:flex;gap:32px;flex-wrap:wrap;border-bottom:1px solid rgba(255,255,255,.05)}
+.stat{text-align:center}
+.stat-num{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--gold);line-height:1}
+.stat-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.15em;color:var(--steel);text-transform:uppercase;margin-top:2px}
+.stat-num.completed{color:var(--green)}
+
+/* PROGRESS BAR */
+.progress-section{padding:20px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.progress-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.progress-title{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.2em;color:var(--steel);text-transform:uppercase}
+.progress-percent{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--gold)}
+.progress-bar{height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-light));border-radius:3px;transition:width .4s ease}
+.clear-btn{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:6px 12px;border:1px solid rgba(224,122,122,.3);border-radius:2px;background:transparent;color:var(--red);cursor:pointer;transition:all .2s;margin-left:16px}
+.clear-btn:hover{background:rgba(224,122,122,.1);border-color:var(--red)}
+
+/* GRID */
+.grid{padding:32px 0;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+
+/* CARD */
+.card{border:1px solid rgba(255,255,255,.07);border-radius:4px;background:rgba(255,255,255,.02);overflow:hidden;cursor:pointer;transition:border-color .25s,transform .2s,background .2s;position:relative}
+.card:hover{border-color:rgba(201,168,76,.3);transform:translateY(-2px);background:rgba(255,255,255,.04)}
+.card.open{border-color:rgba(201,168,76,.5);background:rgba(10,22,40,.6)}
+.card.hidden{display:none}
+.card.completed{opacity:.6;border-color:rgba(123,198,126,.3)}
+.card.completed .card-hook{text-decoration:line-through;color:var(--steel)}
+.card.completed::after{content:'✓';position:absolute;top:12px;right:12px;font-size:18px;color:var(--green)}
+
+.card-top{padding:18px 20px 16px;display:flex;flex-direction:column;gap:10px}
+.card-badges{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+
+.badge{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;padding:3px 8px;border-radius:2px;font-weight:700}
+.badge-train{background:rgba(168,188,207,.15);color:var(--steel-light);border:1px solid rgba(168,188,207,.2)}
+.badge-live{background:rgba(201,168,76,.15);color:var(--gold);border:1px solid rgba(201,168,76,.2)}
+.badge-larp{background:rgba(123,198,126,.15);color:var(--green);border:1px solid rgba(123,198,126,.2)}
+.badge-baseline{background:rgba(155,109,255,.15);color:var(--baseline);border:1px solid rgba(155,109,255,.2)}
+.badge-deep{background:rgba(224,122,122,.1);color:var(--red);border:1px solid rgba(224,122,122,.2)}
+.badge-niche{background:rgba(201,168,76,.1);color:var(--gold-dim);border:1px solid rgba(201,168,76,.15)}
+.badge-personal{background:rgba(122,143,166,.1);color:var(--steel);border:1px solid rgba(122,143,166,.15)}
+
+.rank-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:1px}
+.rank-1{background:#E07A7A}.rank-2{background:#C9A84C}.rank-3{background:#7BC67E}
+.rank-badge{font-family:'Space Mono',monospace;font-size:9px;color:var(--steel);letter-spacing:.05em}
+
+.card-hook{font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1.05;letter-spacing:.03em;color:var(--off-white);padding:0 20px;transition:color .2s}
+
+.card-series{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.15em;color:var(--gold-dim);text-transform:uppercase;padding:0 20px 14px;display:flex;align-items:center;gap:8px}
+.card-series::before{content:'';width:20px;height:1px;background:var(--gold-dim)}
+
+.card-expand-hint{padding:10px 20px;border-top:1px solid rgba(255,255,255,.05);font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.12em;color:var(--steel);text-transform:uppercase;display:flex;align-items:center;justify-content:space-between;transition:color .2s}
+.card:hover .card-expand-hint{color:var(--gold)}
+.expand-icon{font-size:12px;transition:transform .3s}
+.card.open .expand-icon{transform:rotate(45deg)}
+
+/* EXPANDED CONTENT */
+.card-body{display:none;padding:20px;border-top:1px solid rgba(201,168,76,.15);background:rgba(10,22,40,.4)}
+.card.open .card-body{display:block}
+
+.body-section{margin-bottom:18px}
+.body-section:last-child{margin-bottom:0}
+.body-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.2em;color:var(--gold);text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.body-label::after{content:'';flex:1;height:1px;background:rgba(201,168,76,.15)}
+.body-text{font-size:13px;color:var(--text-body);line-height:1.7}
+
+.visual-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.vtag{font-size:11px;padding:4px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:2px;color:var(--steel-light)}
+
+.caption-preview{padding:14px 16px;background:rgba(201,168,76,.04);border-left:2px solid var(--gold);border-radius:0 2px 2px 0;font-size:13px;color:var(--warm-gray);line-height:1.8;font-style:italic;margin-top:8px;white-space:pre-line}
+
+/* COMPLETE BUTTON */
+.complete-btn{display:flex;align-items:center;gap:8px;margin-top:16px;padding:10px 16px;background:rgba(123,198,126,.1);border:1px solid rgba(123,198,126,.3);border-radius:2px;color:var(--green);font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s}
+.complete-btn:hover{background:rgba(123,198,126,.2);border-color:var(--green)}
+.complete-btn.is-complete{background:var(--green);color:var(--navy)}
+.complete-btn .check-icon{font-size:14px}
+
+/* SECTION DIVIDER */
+.section-divider{padding:28px 0 16px;display:flex;align-items:center;gap:16px}
+.divider-label{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:.06em;color:var(--off-white);white-space:nowrap}
+.divider-line{flex:1;height:1px;background:rgba(255,255,255,.08)}
+.divider-count{font-family:'Space Mono',monospace;font-size:10px;color:var(--steel);letter-spacing:.1em}
+
+/* EMPTY STATE */
+.empty-state{padding:60px 0;text-align:center;display:none}
+.empty-state.visible{display:block}
+.empty-title{font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--steel);letter-spacing:.06em}
+.empty-sub{font-family:'Space Mono',monospace;font-size:11px;color:var(--gold-dim);margin-top:8px;letter-spacing:.15em}
+
+/* SERIES LAUNCH MAP */
+.launch-map {margin-bottom: 40px;}
+.launch-header {display:flex;align-items:center;margin-bottom:16px;gap:12px}
+.launch-header h2 {font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:.06em;color:var(--off-white);line-height:1}
+.table-wrap {border:1px solid rgba(255,255,255,.07);border-radius:4px;background:rgba(255,255,255,.01);overflow-x:auto}
+.launch-table {width:100%;border-collapse:collapse;text-align:left;font-size:13px}
+.launch-table th {font-family:'Space Mono',monospace;font-size:10px;text-transform:uppercase;color:var(--steel);letter-spacing:.15em;padding:12px 20px;border-bottom:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03)}
+.launch-table td {padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--text-body)}
+.launch-table tr:last-child td {border-bottom:none}
+.launch-table tr:hover {background:rgba(255,255,255,.02)}
+.cell-series {font-weight:700;color:var(--off-white)}
+.cell-type {font-family:'Space Mono',monospace;font-size:10px;text-transform:uppercase;color:var(--steel-light);letter-spacing:.1em;}
+.cell-launch {font-family:'Space Mono',monospace;font-size:11px;color:var(--gold)}
+.cell-notes {font-size:12px;color:var(--steel-light);max-width:400px;line-height:1.5}
+
+
+/* FOOTER */
+.footer{padding:48px 0 32px;border-top:1px solid rgba(255,255,255,.05);text-align:center}
+.footer-brand{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:.1em;color:var(--off-white)}
+.footer-sub{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.2em;color:var(--gold-dim);text-transform:uppercase;margin-top:4px}
+
+/* FILTER TOGGLE FOR COMPLETED */
+.filter-completed{display:flex;align-items:center;gap:8px;margin-left:16px}
+.filter-completed label{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--steel);text-transform:uppercase;cursor:pointer}
+.filter-completed input{accent-color:var(--gold);cursor:pointer}
+
+@media(max-width:600px){.grid{grid-template-columns:1fr}.stats-bar{gap:16px}.search-wrap{width:100%;margin-left:0}.search-input{width:100%}.filter-completed{margin-left:0;margin-top:12px}}
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero">
+<div class="container">
+  <div class="eyebrow">Content Ideation System · v3.1</div>
+  <h1 class="brand">24K<br><span>0JAY</span></h1>
+  <div class="hero-meta">Train · Live · LARP · Baseline &nbsp;|&nbsp; Former Athlete · Mind · Body · Soul</div>
+</div>
+</section>
+
+<!-- FILTERS + SEARCH -->
+<div class="container">
+<div class="filter-bar">
+  <span class="filter-label">Pillar</span>
+  <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">All</button>
+  <button class="filter-btn pillar-train" data-filter="train" onclick="setFilter('train',this)">Train</button>
+  <button class="filter-btn pillar-live" data-filter="live" onclick="setFilter('live',this)">Live</button>
+  <button class="filter-btn pillar-larp" data-filter="larp" onclick="setFilter('larp',this)">LARP</button>
+  <button class="filter-btn pillar-baseline" data-filter="baseline" onclick="setFilter('baseline',this)">Baseline</button>
+  <span class="filter-label" style="margin-left:8px">Tier</span>
+  <button class="filter-btn" data-tier="deep" onclick="setTier('deep',this)">Deep Niche</button>
+  <button class="filter-btn" data-tier="niche" onclick="setTier('niche',this)">Niche</button>
+  <button class="filter-btn" data-tier="personal" onclick="setTier('personal',this)">Personal</button>
+  <div class="search-wrap">
+    <input class="search-input" type="text" placeholder="Search hooks..." oninput="doSearch(this.value)">
+  </div>
+  <div class="filter-completed">
+    <input type="checkbox" id="hideCompleted" onchange="toggleHideCompleted(this.checked)">
+    <label for="hideCompleted">Hide Completed</label>
+  </div>
+</div>
+
+<!-- PROGRESS -->
+<div class="progress-section">
+  <div class="progress-header">
+    <span class="progress-title">Content Progress</span>
+    <div style="display:flex;align-items:center">
+      <span class="progress-percent" id="progress-percent">0%</span>
+      <button class="clear-btn" onclick="clearProgress()">Reset Progress</button>
+    </div>
+  </div>
+  <div class="progress-bar">
+    <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats-bar" style="margin-bottom:32px">
+  <div class="stat"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Total Ideas</div></div>
+  <div class="stat"><div class="stat-num completed" id="stat-completed">0</div><div class="stat-label">Completed</div></div>
+  <div class="stat"><div class="stat-num" id="stat-showing">0</div><div class="stat-label">Showing</div></div>
+  <div class="stat"><div class="stat-num">4</div><div class="stat-label">Pillars</div></div>
+  <div class="stat"><div class="stat-label">Priority:</div><div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--steel);margin-top:4px"><span style="color:#E07A7A">[!] Start Here</span> &nbsp;|&nbsp; <span style="color:#C9A84C">[+] Test Early</span> &nbsp;|&nbsp; <span style="color:#7BC67E">[ ] Scale Later</span></div></div>
+</div>
+
+<!-- SERIES LAUNCH MAP -->
+<div class="launch-map">
+  <div class="launch-header">
+    <h2>Series Launch Map</h2>
+  </div>
+  <div class="table-wrap">
+    <table class="launch-table">
+      <thead>
+        <tr>
+          <th>Series</th>
+          <th>Pillar</th>
+          <th>Type</th>
+          <th>Launch Timing</th>
+          <th>Strategic Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="cell-series">Spiritual Saturday</td><td><span class="badge badge-live">LIVE</span></td><td class="cell-type">Soft</td><td class="cell-launch">Day 1 — Week 1</td><td class="cell-notes">Every Saturday without exception. Same framing. Same grade. Consistency IS the message.</td></tr>
+        <tr><td class="cell-series">24k.ojay Sets</td><td><span class="badge badge-train">TRAIN</span></td><td class="cell-type">Soft</td><td class="cell-launch">Week 1</td><td class="cell-notes">Routine walkthroughs for former athletes. No episode numbers. Recurring theme is the anchor.</td></tr>
+        <tr><td class="cell-series">Morning Standard</td><td><span class="badge badge-train">TRAIN</span></td><td class="cell-type">Soft</td><td class="cell-launch">Week 1</td><td class="cell-notes">Early morning clips as needed. No fixed cadence. Post when you have genuine morning footage.</td></tr>
+        <tr><td class="cell-series">Wrong Zip Code</td><td><span class="badge badge-larp">LARP</span></td><td class="cell-type">Soft</td><td class="cell-launch">Week 2</td><td class="cell-notes">Needs identity established first. Intentional delay — contrast lands harder with context.</td></tr>
+        <tr><td class="cell-series">Film Room</td><td><span class="badge badge-train">TRAIN</span></td><td class="cell-type">Soft</td><td class="cell-launch">Week 1-2</td><td class="cell-notes">Exercise breakdowns and form comparisons. High authority content. Pairs with 24k.ojay Sets.</td></tr>
+        <tr><td class="cell-series">411 Day</td><td><span class="badge badge-larp">LARP</span></td><td class="cell-type">Soft</td><td class="cell-launch">Week 4</td><td class="cell-notes">Full day documentation. Needs footage from training, life, and elevated moments.</td></tr>
+        <tr><td class="cell-series">Built Different</td><td><span class="badge badge-train">TRAIN</span></td><td class="cell-type">Soft</td><td class="cell-launch">Week 1-2</td><td class="cell-notes">Athlete identity montages. No fixed cadence. Run when footage supports it.</td></tr>
+        <tr><td class="cell-series">Verse That Hit Different</td><td><span class="badge badge-live">LIVE</span></td><td class="cell-type">Soft</td><td class="cell-launch">Week 1</td><td class="cell-notes">Weekly personal scripture. Zero production ceiling. Highest save rate in LIVE pillar.</td></tr>
+        <tr><td class="cell-series">What the Locker Room...</td><td><span class="badge badge-live">LIVE</span></td><td class="cell-type">Soft</td><td class="cell-launch">Post 1 — Day 1</td><td class="cell-notes">Launched with post 1. Deepest LIVE series. Runs on inspiration not fixed cadence.</td></tr>
+        <tr><td class="cell-series">Identity Shift</td><td><span class="badge badge-live">LIVE</span></td><td class="cell-type">Soft</td><td class="cell-launch">Post 10 — Day 36</td><td class="cell-notes">Post 10 triggers this series. Runs as faith and identity content develops.</td></tr>
+        <tr style="background:rgba(155,109,255,.05)"><td class="cell-series">Baseline Journey</td><td><span class="badge badge-baseline">BASELINE</span></td><td class="cell-type">Hard</td><td class="cell-launch">Week 1 — Day 1</td><td class="cell-notes">Document your dopamine reset from day 1. Your personal transformation is the content. Weekly scores every Sunday.</td></tr>
+        <tr style="background:rgba(155,109,255,.05)"><td class="cell-series">Dopamine Science</td><td><span class="badge badge-baseline">BASELINE</span></td><td class="cell-type">Soft</td><td class="cell-launch">Week 2</td><td class="cell-notes">Educational content on neuroscience. 60-second explainers. Build authority before pitching the app.</td></tr>
+        <tr style="background:rgba(155,109,255,.05)"><td class="cell-series">Build In Public</td><td><span class="badge badge-baseline">BASELINE</span></td><td class="cell-type">Soft</td><td class="cell-launch">Week 2-3</td><td class="cell-notes">Show Mobin designs, onboarding flow, tracker iterations. Let people feel like they're part of the build.</td></tr>
+        <tr style="background:rgba(155,109,255,.05)"><td class="cell-series">Faith + Productivity</td><td><span class="badge badge-baseline">BASELINE</span></td><td class="cell-type">Soft</td><td class="cell-launch">Week 1</td><td class="cell-notes">Your most differentiated angle. Connect spiritual discipline to dopamine and execution. Underserved audience.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- CONTENT GRID -->
+<div class="grid" id="grid"></div>
+<div class="empty-state" id="empty">
+  <div class="empty-title">No Results</div>
+  <div class="empty-sub">Try adjusting your filters or search</div>
+</div>
+</div>
+
+<div class="footer">
+<div class="container">
+  <div class="footer-brand">24K.OJAY</div>
+  <div class="footer-sub">Content System v3.1 · @24k.0jay · Train · Live · LARP · Baseline</div>
+</div>
+</div>
+
+<script>
+const DATA = [
+
+// ═══════════════════════════════════════════════════════════════════
+// ─── TRAIN · DEEP NICHE ───────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+{pillar:"train",tier:"deep",rank:1,hook:"Most gym content is built for influencers. Here's what works for former athletes.",series:"24k.ojay Sets",format:"Routine walkthrough",
+shows:"A real 30-minute workout — trap bar deads, pull-ups, carries — designed around maintaining the athlete body long-term.",
+caption:"Efficiency beats volume when longevity is the goal.",
+why:"Sets up the ICP contrast immediately. Attacks the noise of mainstream fitness content."},
+
+{pillar:"train",tier:"deep",rank:1,hook:"The training shift every athlete needs to make after competition ends.",series:"Film Room",format:"Split-screen comparison",
+shows:"Competition training vs longevity training. Ego lifting vs controlled movement. Visual comparison.",
+caption:"The goal changed. The training should too.",
+why:"Speaks directly to former athletes still training like they're in-season. Reframes the purpose."},
+
+{pillar:"train",tier:"deep",rank:2,hook:"3 exercises that protect your back for the next 40 years.",series:"Film Room",format:"Exercise breakdown",
+shows:"Three movements explained in under 60 seconds each — dead bugs, hip hinges, loaded carries. Why each one matters.",
+caption:"Your back is your foundation.\nTrain it like your future depends on it — because it does.",
+why:"Practical, niche, and useful. Former athletes feel seen. Easy to save. Easy to share."},
+
+{pillar:"train",tier:"deep",rank:2,hook:"The gym routine that keeps me moving pain-free at 25.",series:"24k.ojay Sets",format:"Routine walkthrough",
+shows:"Full workout with reasoning. 4 movements. Athlete efficiency. Low injury risk, high longevity payoff.",
+caption:"Not about looking good. About lasting long.",
+why:"Injury prevention + longevity = key concerns for post-competition athletes."},
+
+{pillar:"train",tier:"deep",rank:3,hook:"Ego lifting cost me three weeks on the sideline.",series:"Film Room",format:"Split-screen comparison",
+shows:"Heavy squat fail or strain moment (if you have footage). Followed by recovery clips. End on controlled lift.",
+caption:"The best ability is availability.\nStrength means nothing if you're sidelined.",
+why:"Personal vulnerability with direct lesson. Resonates with every athlete who has pushed too hard."},
+
+{pillar:"train",tier:"deep",rank:3,hook:"Why I stopped doing conventional deadlifts.",series:"Film Room",format:"Exercise breakdown",
+shows:"Comparison of conventional vs trap bar. Why the trade-off matters for longevity.",
+caption:"Not every lift is worth the risk.\nSome swaps are non-negotiable.",
+why:"Contrarian fitness take. Sparks debate in comments. High engagement for algorithm."},
+
+// ─── TRAIN · NICHE ────────────────────────────────────────────────
+
+{pillar:"train",tier:"niche",rank:1,hook:"The athlete standard doesn't stop after college.",series:"Built Different",format:"Montage",
+shows:"Training clips, discipline moments. Fast cuts. Music-driven.",
+caption:"Some men lower the bar when competition ends.\n24k.ojay raises it.",
+why:"Tribal identity hook. Defines who your audience is — and who they're not."},
+
+{pillar:"train",tier:"niche",rank:1,hook:"They told me to take it easy. I just changed the program.",series:"Built Different",format:"Montage",
+shows:"Training montage. Controlled. Intentional. Still pushing.",
+caption:"Rest is earned. Recovery is designed.\nBut the standard never drops.",
+why:"Speaks to the athlete who was told to slow down and refused. Strong emotional trigger."},
+
+{pillar:"train",tier:"niche",rank:2,hook:"This is what 5 AM looks like when discipline is the lifestyle.",series:"Morning Standard",format:"5AM clip",
+shows:"Pre-sunrise gym. Dark. Raw. Coffee. No polish.",
+caption:"Most people don't even know this version of the day exists.",
+why:"Documents an identity rather than a tip. Tribe-building content."},
+
+{pillar:"train",tier:"niche",rank:2,hook:"The difference between training for looks and training for life.",series:"Film Room",format:"Exercise breakdown",
+shows:"Aesthetic exercise vs functional exercise. Visual comparison. Light commentary.",
+caption:"You can look fit and still not be useful.\nOr you can build a body that performs when it counts.",
+why:"Creates contrast. Differentiates the brand from mainstream fitness content."},
+
+{pillar:"train",tier:"niche",rank:3,hook:"I stopped chasing numbers. Here's what happened.",series:"Film Room",format:"Transformation / reflection",
+shows:"Old training footage vs new. Less weight, more control, better movement.",
+caption:"Ego said go heavy. Experience said go smart.",
+why:"Maturity arc content. Builds long-term credibility with an older segment of ICP."},
+
+{pillar:"train",tier:"niche",rank:3,hook:"You're losing your speed and don't even know it.",series:"Built Different",format:"Montage",
+shows:"Sprint work. Plyometrics. Explosive movements woven into a routine.",
+caption:"Speed is a skill.\nIf you stop using it, it disappears.",
+why:"Simple alarm bell. Every former athlete who has stopped sprinting feels this one."},
+
+// ─── TRAIN · PERSONAL ─────────────────────────────────────────────
+
+{pillar:"train",tier:"personal",rank:1,hook:"The early morning workout nobody sees.",series:"Morning Standard",format:"5AM clip",
+shows:"5 AM gym clips. Dark. Raw. No filter. Coffee. Chalk.",
+caption:"Discipline starts before anyone is watching.",
+why:"Documents the habit without explaining it. The restraint is the credibility."},
+
+{pillar:"train",tier:"personal",rank:2,hook:"The one lift that keeps my back healthy long-term.",series:"Film Room",format:"Exercise breakdown",
+shows:"Trap bar deadlift breakdown. Cues. Why this lift specifically.",
+caption:"Not every lift is worth the risk.\nThis one is non-negotiable.",
+why:"Personal and specific. This lift choice is a real decision you make. That honesty builds trust."},
+
+{pillar:"train",tier:"personal",rank:2,hook:"If you only have 20 minutes, train like this.",series:"24k.ojay Sets",format:"Routine walkthrough",
+shows:"Short brutal circuit. 20 minutes. Shows the effort not the result.",
+caption:"You don't need 2 hours. You need intent.",
+why:"Permission-giving post. Validates the man who only has 20 minutes. Massive relatability."},
+
+{pillar:"train",tier:"personal",rank:3,hook:"The recovery routine that keeps me moving.",series:"Recovery Protocol",format:"Recovery protocol",
+shows:"Stretching, foam rolling, dead hangs. Methodical. Quiet.",
+caption:"Longevity beats intensity.",
+why:"Anti-highlight content. Shows the maintenance that makes the performance possible."},
+
+// ═══════════════════════════════════════════════════════════════════
+// ─── LIVE · DEEP NICHE ────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+{pillar:"live",tier:"deep",rank:1,hook:"The locker room gave me discipline. But it didn't give me purpose.",series:"What the Locker Room Didn't Teach You",format:"Reflective voiceover",
+shows:"Montage — empty gym, quiet morning, Bible on bench, stillness. Slow. Cinematic.",
+caption:"Sports build discipline.\nBut eventually every athlete has to answer a deeper question: What am I actually living for?",
+why:"The thesis of the entire brand in one hook. Emotional weight unmatched. Post this in your first five."},
+
+{pillar:"live",tier:"deep",rank:1,hook:"The world says rest when you feel like it. God says discipline is worship.",series:"Spiritual Saturday",format:"Short declaration",
+shows:"Early morning training clips. Cold grade. Still.",
+caption:"Discipline isn't punishment.\nIt's respect for the life God gave you.",
+why:"Reframes training as spiritual practice. Speaks to every faith-driven man who has struggled to connect the two."},
+
+{pillar:"live",tier:"deep",rank:2,hook:"God will humble you before He grows you.",series:"Spiritual Saturday",format:"Scripture + still footage",
+shows:"Humble moments, training struggles. The unglamorous season.",
+caption:"Humility is part of becoming the man you're supposed to be.",
+why:"Speaks directly to the post-athlete identity crisis. The most emotionally precise LIVE post."},
+
+{pillar:"live",tier:"deep",rank:2,hook:"Faith isn't just for Sundays.",series:"Spiritual Saturday",format:"Scripture + still footage",
+shows:"Bible reading, training, daily life. Three cuts. Let each breathe.",
+caption:"Faith should shape how you train, think, and live.",
+why:"The brand's core integration message made explicit."},
+
+{pillar:"live",tier:"deep",rank:2,hook:"God doesn't waste the quiet seasons.",series:"The Inner Work",format:"Reflective voiceover",
+shows:"Slow reflective footage. Morning. Stillness. Nothing happening.",
+caption:"Growth often happens when life looks ordinary.",
+why:"Speaks to the man in the middle of an unglamorous season who needs permission to trust the process."},
+
+{pillar:"live",tier:"deep",rank:3,hook:"Strength without purpose is empty.",series:"The Inner Work",format:"Short declaration",
+shows:"Heavy training clips. All the physical proof. Then stillness.",
+caption:"Physical strength should point toward something deeper.",
+why:"Challenges the pure gym culture audience. Invites them deeper into the brand world."},
+
+{pillar:"live",tier:"deep",rank:3,hook:"God cares about the small disciplines.",series:"Spiritual Saturday",format:"Scripture + still footage",
+shows:"Routine clips — gym, reading, quiet moments. The ordinary faithfulness.",
+caption:"Faith grows through daily habits.",
+why:"Permission for the man whose life looks ordinary. The quiet faithfulness is the testimony."},
+
+// ─── LIVE · NICHE ─────────────────────────────────────────────────
+
+{pillar:"live",tier:"niche",rank:1,hook:"I thought football was my identity.",series:"Identity Shift",format:"Reflective voiceover",
+shows:"Slow cinematic — football highlights, gym training, quiet moments. Three worlds in one arc.",
+caption:"When sports end, many athletes feel lost.\nBut identity was never supposed to come from performance.",
+why:"Most vulnerable post in the LIVE pillar. Save for week 3–4. Needs trust built first."},
+
+{pillar:"live",tier:"niche",rank:1,hook:"Some men want comfort. Some men want purpose.",series:"The Inner Work",format:"Short declaration",
+shows:"Hard training clips. The contrast between ease and effort.",
+caption:"Purpose requires discomfort and sacrifice.",
+why:"Draws a line. Creates tribal belonging. The men who share this are your core audience."},
+
+{pillar:"live",tier:"niche",rank:2,hook:"The moment sports stop defining you.",series:"Identity Shift",format:"Reflective voiceover",
+shows:"Reflection in the gym or car. Still. Honest.",
+caption:"Athletes eventually face the question: Who am I without the game?",
+why:"Universal for any former athlete. Broad niche reach."},
+
+{pillar:"live",tier:"niche",rank:2,hook:"Masculinity isn't noise. It's discipline.",series:"Faith and Manhood",format:"Short declaration",
+shows:"Quiet training. No flexing. No performance.",
+caption:"Real masculinity is built through consistency and responsibility.",
+why:"Counter-cultural statement. Goes against loud alpha content. Speaks to the man who is tired of the performance."},
+
+{pillar:"live",tier:"niche",rank:3,hook:"The kind of man I'm trying to become.",series:"The Inner Work",format:"Reflective voiceover",
+shows:"Montage of training, stillness, faith. All three pillars in one cut.",
+caption:"Not perfect. Just committed to becoming better.",
+why:"Brand summation post. Works as a recurring format to close out content arcs."},
+
+{pillar:"live",tier:"niche",rank:3,hook:"The discipline that saved my life.",series:"Daily Discipline",format:"Reflective voiceover",
+shows:"Training routine. The habit as anchor.",
+caption:"Discipline keeps men from drifting.",
+why:"Strong personal testimony hook. Broad enough to speak to any man who has used structure to avoid self-destruction."},
+
+// ─── LIVE · PERSONAL ──────────────────────────────────────────────
+
+{pillar:"live",tier:"personal",rank:1,hook:"The verse that hit different this week.",series:"Verse That Hit Different",format:"Scripture + still footage",
+shows:"Simple cinematic footage — training, scripture, early morning quiet. Text of the verse on screen.",
+caption:"Share the verse. One sentence about where you were when it found you.",
+why:"Personal and recurring. Zero production. Highest save rate of any LIVE format."},
+
+{pillar:"live",tier:"personal",rank:2,hook:"The quiet discipline nobody sees.",series:"Daily Discipline",format:"5AM clip",
+shows:"Morning routine — Bible, coffee, gym. Before anyone is watching.",
+caption:"The strongest men build habits before the world wakes up.",
+why:"Silent entry energy. The restraint and the discipline are the same message."},
+
+{pillar:"live",tier:"personal",rank:2,hook:"The prayer I say before every workout.",series:"Faith and Training",format:"Scripture + still footage",
+shows:"Simple quiet moment before lifting. Still. Real.",
+caption:"Training is stewardship.",
+why:"Intimate. Personal. Shows faith integrated into the ordinary moment rather than announced."},
+
+{pillar:"live",tier:"personal",rank:3,hook:"Mind, body, soul — this is what integration looks like.",series:"The Inner Work",format:"Reflective voiceover",
+shows:"Training, stillness, prayer. One continuous flow.",
+caption:"When all three are aligned, everything changes.",
+why:"Brand thesis executed as personal content. The integration is the message."},
+
+// ═══════════════════════════════════════════════════════════════════
+// ─── LARP · DEEP NICHE ────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+
+{pillar:"larp",tier:"deep",rank:1,hook:"I don't live here. But I'm going to act like it.",series:"Wrong Zip Code",format:"Wrong Zip Code workout",
+shows:"High-income area — Rittenhouse Square or similar. Real workout. Wide establishing shot first. Self-aware narration.",
+caption:"Put yourself in places that pull you forward.\nThe environment shapes the standard.",
+why:"Your original brand concept executed in its purest form. The self-awareness is what makes it motivational instead of fake."},
+
+{pillar:"larp",tier:"deep",rank:2,hook:"Why I train where the money is.",series:"Wrong Zip Code",format:"Wrong Zip Code workout",
+shows:"Premium location. Training that belongs there. No apology for being there.",
+caption:"The zip code you train in becomes the zip code you think in.",
+why:"Bridges aspiration and action. The location is the argument."},
+
+{pillar:"larp",tier:"deep",rank:3,hook:"The gap between where I am and where I'm going.",series:"Wrong Zip Code",format:"Wrong Zip Code workout",
+shows:"Morning routine. Elevated location in the evening. Same day. Same man.",
+caption:"Both are real. Neither is the whole story.",
+why:"Shows the tension without resolving it. The unresolved arc keeps people following."},
+
+// ─── LARP · NICHE ─────────────────────────────────────────────────
+
+{pillar:"larp",tier:"niche",rank:1,hook:"Discipline in the morning. Gold standard at night.",series:"411 Day",format:"411 Day — full day doc",
+shows:"Training, daily routine, then elevated moment. One continuous day documented.",
+caption:"The discipline creates the life.\nNot the other way around.",
+why:"The brand's core promise executed as content. Shows the full person."},
+
+{pillar:"larp",tier:"niche",rank:1,hook:"Disciplined men deserve elevated lives.",series:"411 Day",format:"Highlight moment",
+shows:"Elevated setting, clean outfit, intention. No explanation needed.",
+caption:"You earned it.\nNow act like it.",
+why:"Permission-giving post for the man who has been grinding and needs to see what's possible."},
+
+{pillar:"larp",tier:"niche",rank:2,hook:"The athlete mentality belongs everywhere.",series:"Wrong Zip Code",format:"Wrong Zip Code workout",
+shows:"Training in an unexpected elevated setting. The sport is gone but the standard travels.",
+caption:"The arena changes. The standard doesn't.",
+why:"Bridges the athlete identity into the LARP world. Speaks to both audience segments."},
+
+{pillar:"larp",tier:"niche",rank:2,hook:"I train with intention. I live with intention.",series:"411 Day",format:"Highlight moment",
+shows:"Visual contrast — training clips and elevated moments. The connection is clear.",
+caption:"Both are who I am.\nNeither is a costume.",
+why:"The brand's visual thesis in one post. Highest share potential."},
+
+// ─── LARP · PERSONAL ──────────────────────────────────────────────
+
+{pillar:"larp",tier:"personal",rank:1,hook:"The life I'm building looks nothing like where I started.",series:"411 Day",format:"Highlight moment",
+shows:"A moment from the life that is aspirational. Real. Earned.",
+caption:"Not flexing. Just building.",
+why:"Personal testimony through image. The restraint of the caption is the credibility."},
+
+{pillar:"larp",tier:"personal",rank:2,hook:"Two versions of me. Same man.",series:"Wrong Zip Code",format:"Highlight moment",
+shows:"Training hard. Living elevated. The transition cut — gym to elevated moment. Visual only.",
+caption:"",
+why:"No caption needed. The image is the entire post. Let the viewer write their own meaning."},
+
+{pillar:"larp",tier:"personal",rank:3,hook:"This is what congruent living looks like.",series:"411 Day",format:"411 Day — full day doc",
+shows:"Full day — gym, daily rhythm, elevated moment, reflection. The whole arc of a real day.",
+caption:"Train like an athlete. Think like a builder. Live like a man of purpose.",
+why:"Brand summation executed as a day-in-life. Save for when the audience knows all pillars."},
+
+
+// ═══════════════════════════════════════════════════════════════════
+// ─── BASELINE APP · DEEP NICHE (Pain Points / Science) ────────────
+// ═══════════════════════════════════════════════════════════════════
+
+{pillar:"baseline",tier:"deep",rank:1,hook:"I deleted TikTok and tracked what happened to my motivation over 30 days.",series:"Baseline Journey",format:"Personal transformation",
+shows:"Day 1 footage, weekly check-ins, final reflection. Show your actual tracker scores improving week over week. Raw and honest.",
+caption:"Your dopamine baseline was depleted.\nThis is what happens when you let it recover.",
+why:"Your first video. Personal story + data + transformation. This is the viral concept that introduces everything else."},
+
+{pillar:"baseline",tier:"deep",rank:1,hook:"The real reason you procrastinate.",series:"Dopamine Science",format:"60-second explainer",
+shows:"Simple visual explanation of the dopamine trough. Use a waveform graphic or whiteboard. Keep it under 60 seconds.",
+caption:"It's not a discipline problem.\nIt's a dopamine problem.",
+why:"Educational hook that reframes procrastination. Positions you as the person who understands the science."},
+
+{pillar:"baseline",tier:"deep",rank:1,hook:"Why your morning routine isn't working.",series:"Dopamine Science",format:"60-second explainer",
+shows:"Visual of dopamine stacking — caffeine, phone, music all hitting at once. Then show the crash.",
+caption:"You're borrowing motivation from tomorrow.\nAnd the debt is compounding.",
+why:"Attacks the popular morning routine content with science. Contrarian hook that gets attention."},
+
+{pillar:"baseline",tier:"deep",rank:2,hook:"What happens to your brain when you scroll first thing in the morning.",series:"Dopamine Science",format:"60-second explainer",
+shows:"Morning phone footage. Then explain the dopamine spike and crash cycle with simple graphics.",
+caption:"The day was lost before it started.\nAnd you didn't even notice.",
+why:"Specific behavior + consequence. Every viewer has done this and will recognize themselves."},
+
+{pillar:"baseline",tier:"deep",rank:2,hook:"Why the more you try to feel motivated, the less motivated you feel.",series:"Dopamine Science",format:"60-second explainer",
+shows:"Visual metaphor — chasing something that keeps moving away. Explain tolerance and baseline depletion.",
+caption:"Motivation isn't something you find.\nIt's something you build.",
+why:"Counterintuitive insight that stops the scroll. This is the core Baseline philosophy."},
+
+{pillar:"baseline",tier:"deep",rank:2,hook:"The neuroscience of why you clean your room instead of doing the thing that actually matters.",series:"Dopamine Science",format:"60-second explainer",
+shows:"Show the avoidance behavior first. Then explain why small tasks feel rewarding when baseline is low.",
+caption:"Busy is not the same as building.",
+why:"Names the exact behavior your audience does daily. Instant recognition = instant trust."},
+
+{pillar:"baseline",tier:"deep",rank:3,hook:"I did my workout with no music, no pre-workout, no caffeine. Here's what happened.",series:"Baseline Journey",format:"Personal experiment",
+shows:"Footage of the workout. Your honest reaction. What you noticed about your focus and effort.",
+caption:"When you stop stacking stimulation, effort becomes the reward.",
+why:"Shows you practicing what you preach. The honesty of the discomfort is the credibility."},
+
+{pillar:"baseline",tier:"deep",rank:3,hook:"You've been borrowing motivation from tomorrow.",series:"Dopamine Science",format:"Short declaration",
+shows:"Split screen — stimulation stacking vs. controlled effort. Let the visual make the point.",
+caption:"Every spike has a trough.\nThe debt always comes due.",
+why:"Marketing line delivered as content. This is the hook that explains the entire Baseline concept."},
+
+// ─── BASELINE APP · NICHE (App Marketing / Faith Integration) ─────
+
+{pillar:"baseline",tier:"niche",rank:1,hook:"I put prayer on my productivity tracker. Here's what happened.",series:"Faith + Productivity",format:"Personal experiment",
+shows:"Your tracker with prayer as a category. Your weekly scores. Your reflection on how it changed your execution.",
+caption:"Discipline is an act of stewardship.",
+why:"Your most differentiated content angle. Nobody else is making this. Speaks to massive underserved audience."},
+
+{pillar:"baseline",tier:"niche",rank:1,hook:"Why Notion stopped working for me.",series:"Build In Public",format:"Contrarian take",
+shows:"Screen recording of Notion getting complicated. Explain why it treats motivation as input instead of output.",
+caption:"Most productivity apps track output.\nBaseline tracks the inputs that make output possible.",
+why:"Contrarian take on popular tool. Sets up Baseline's positioning perfectly."},
+
+{pillar:"baseline",tier:"niche",rank:1,hook:"Spirit. Mind. Body. One system.",series:"Faith + Productivity",format:"Short declaration",
+shows:"Prayer footage. Deep work footage. Gym footage. Three cuts that feel like one continuous flow.",
+caption:"When one is off, all three suffer.\nWhen all three are aligned, you become unstoppable.",
+why:"The brand thesis in 15 seconds. This is the positioning statement delivered as content."},
+
+{pillar:"baseline",tier:"niche",rank:2,hook:"The connection between spiritual discipline and dopamine that nobody talks about.",series:"Faith + Productivity",format:"Reflective voiceover",
+shows:"Morning routine footage — Bible, stillness, then action. Let the rhythm speak.",
+caption:"God designed the brain.\nUnderstanding how it works is stewardship.",
+why:"Bridges neuroscience and faith. Gives permission to the faith-driven audience to engage with the science."},
+
+{pillar:"baseline",tier:"niche",rank:2,hook:"Faith-based productivity is massively underserved.",series:"Build In Public",format:"Market insight",
+shows:"You talking to camera. Share the gap you noticed. Why secular apps don't work for people of faith.",
+caption:"Most productivity apps are secular.\nMost faith apps don't connect to execution.\nBaseline sits in the gap.",
+why:"Positions the opportunity. Shows you understand the market and the audience."},
+
+{pillar:"baseline",tier:"niche",rank:2,hook:"8 signs your dopamine baseline is depleted.",series:"Dopamine Science",format:"Carousel / list post",
+shows:"Text on screen with footage illustrating each sign. Scroll trap, procrastination, sleep issues, etc.",
+caption:"If you checked more than 3, your baseline needs a reset.",
+why:"Diagnostic content. Viewers self-identify as the target audience. High save rate."},
+
+{pillar:"baseline",tier:"niche",rank:3,hook:"Why streaks don't work — and what does.",series:"Dopamine Science",format:"60-second explainer",
+shows:"Streak examples from other apps. Explain why they create anxiety instead of motivation.",
+caption:"Streaks measure consistency.\nThey don't build it.",
+why:"Attacks a common feature with science. Differentiates Baseline from competitors."},
+
+{pillar:"baseline",tier:"niche",rank:3,hook:"How your body affects your spirit — and vice versa.",series:"Faith + Productivity",format:"Reflective voiceover",
+shows:"Training footage mixed with stillness footage. Show the integration physically.",
+caption:"Love the Lord with all your heart, soul, mind, and strength.\nThat's the whole person.",
+why:"Biblical framework for the Spirit-Mind-Body integration. Deepens the faith positioning."},
+
+// ─── BASELINE APP · PERSONAL (Documentation / Scores) ─────────────
+
+{pillar:"baseline",tier:"personal",rank:1,hook:"I scored myself every week for 8 weeks. Here's what the data actually showed.",series:"Baseline Journey",format:"Data review",
+shows:"Screen recording of your tracker. Show real numbers — including the 40% weeks. Honest reflection.",
+caption:"The bad weeks taught me more than the good ones.",
+why:"Transparency builds trust. Showing failure makes success believable. This is your proof of concept."},
+
+{pillar:"baseline",tier:"personal",rank:1,hook:"My Baseline score this week.",series:"Baseline Journey",format:"Weekly check-in",
+shows:"Your tracker screen. Your score. Quick reflection on what worked and what didn't.",
+caption:"Week [X]: [Score]%\n[One sentence insight]",
+why:"Recurring content. Posts every Sunday. Your audience learns to expect it. Accountability + product demo in one."},
+
+{pillar:"baseline",tier:"personal",rank:2,hook:"What a 79% week looks like vs a 40% week.",series:"Baseline Journey",format:"Side-by-side comparison",
+shows:"Split screen footage. Daily habits, energy, output. Let the viewer see the difference in your life.",
+caption:"The inputs determine the output.\nEvery time.",
+why:"Visual proof of the system working. This is the testimonial content before you have users."},
+
+{pillar:"baseline",tier:"personal",rank:2,hook:"I built a faith-based productivity app. Here's the idea.",series:"Build In Public",format:"Concept announcement",
+shows:"You to camera or voiceover. Share the concept, the pain points, the vision. Ask for feedback.",
+caption:"This is week 1.\nFollow along as I build it.",
+why:"Launches the documentation series. Gets early community investment. People follow journeys."},
+
+{pillar:"baseline",tier:"personal",rank:2,hook:"Building Baseline in public — week [X].",series:"Build In Public",format:"Weekly update",
+shows:"Mobin designs, onboarding flow, tracker iterations. Show the work in progress.",
+caption:"This is what building looks like.\nNo shortcuts. Just iterations.",
+why:"Recurring documentation content. Builds community investment before launch."},
+
+{pillar:"baseline",tier:"personal",rank:3,hook:"What I learned from 30 days of tracking spirit, mind, and body.",series:"Baseline Journey",format:"Long-form reflection",
+shows:"Month recap. Key insights. What changed in your life. Real data, real reflection.",
+caption:"This system isn't about perfection.\nIt's about visibility.",
+why:"Monthly milestone content. Best for YouTube or longer Instagram caption. High value for engaged followers."},
+
+{pillar:"baseline",tier:"personal",rank:3,hook:"The first person who hit Elite status on Baseline.",series:"Build In Public",format:"Milestone moment",
+shows:"User testimonial or screenshot. Celebrate the win. Show what consistency looks like.",
+caption:"Proof of concept: real person, real results.",
+why:"Save for post-launch. Social proof content. First user milestone is a major content moment."},
+
+{pillar:"baseline",tier:"personal",rank:3,hook:"Effort is the reward — what that actually means.",series:"Dopamine Science",format:"Reflective voiceover",
+shows:"Hard training footage. Show effort without external payoff.",
+caption:"The holy grail is when effort itself releases dopamine.\nThat's what we're training for.",
+why:"The deepest Baseline concept explained simply. This is graduate-level content for engaged audience."},
+
+];
+
+const PILLAR_COLORS = {train:'badge-train',live:'badge-live',larp:'badge-larp',baseline:'badge-baseline'};
+const TIER_COLORS = {deep:'badge-deep',niche:'badge-niche',personal:'badge-personal'};
+const TIER_LABELS = {deep:'Deep Niche',niche:'Niche',personal:'Personal'};
+const PILLAR_LABELS = {train:'Train',live:'Live',larp:'LARP',baseline:'Baseline'};
+const RANK_LABELS = {1:'Start Here',2:'Test Early',3:'Scale Later'};
+
+let activeFilter = 'all';
+let activeTier = 'all';
+let searchTerm = '';
+let hideCompleted = false;
+let completedItems = JSON.parse(localStorage.getItem('24k_completed_v31') || '{}');
+
+function saveCompleted() {
+  localStorage.setItem('24k_completed_v31', JSON.stringify(completedItems));
+}
+
+function buildCard(d, i) {
+  const isComplete = completedItems[i] === true;
+  const seriesLine = d.series ? `<div class="card-series">${d.series}</div>` : '';
+  return `<div class="card ${isComplete ? 'completed' : ''}" id="card-${i}" data-pillar="${d.pillar}" data-tier="${d.tier}" data-complete="${isComplete}">
+    <div class="card-top" onclick="toggleCard(${i})">
+      <div class="card-badges">
+        <span class="badge ${PILLAR_COLORS[d.pillar]}">${PILLAR_LABELS[d.pillar]}</span>
+        <span class="badge ${TIER_COLORS[d.tier]}">${TIER_LABELS[d.tier]}</span>
+        <span class="rank-dot rank-${d.rank}"></span>
+        <span class="rank-badge">${RANK_LABELS[d.rank]}</span>
+      </div>
+    </div>
+    <div class="card-hook" onclick="toggleCard(${i})">${d.hook}</div>
+    ${seriesLine}
+    <div class="card-expand-hint" onclick="toggleCard(${i})"><span>Tap to expand</span><span class="expand-icon">+</span></div>
+    <div class="card-body">
+      <div class="body-section">
+        <div class="body-label">Format</div>
+        <div class="body-text">${d.format}</div>
+      </div>
+      <div class="body-section">
+        <div class="body-label">What the video shows</div>
+        <div class="body-text">${d.shows}</div>
+      </div>
+      ${d.caption ? `<div class="body-section"><div class="body-label">Caption angle</div><div class="caption-preview">${d.caption.replace(/\n/g,'\n')}</div></div>` : ''}
+      <div class="body-section">
+        <div class="body-label">Why it works</div>
+        <div class="body-text">${d.why}</div>
+      </div>
+      <button class="complete-btn ${isComplete ? 'is-complete' : ''}" onclick="toggleComplete(${i}, event)">
+        <span class="check-icon">${isComplete ? '✓' : '○'}</span>
+        <span>${isComplete ? 'Completed' : 'Mark Complete'}</span>
+      </button>
+    </div>
+  </div>`;
+}
+
+function toggleComplete(i, event) {
+  event.stopPropagation();
+  completedItems[i] = !completedItems[i];
+  saveCompleted();
+  render();
+}
+
+function clearProgress() {
+  if (confirm('Are you sure you want to reset all progress? This cannot be undone.')) {
+    completedItems = {};
+    saveCompleted();
+    render();
+  }
+}
+
+function toggleHideCompleted(checked) {
+  hideCompleted = checked;
+  applyFilters();
+}
+
+function render() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = DATA.map((d,i) => buildCard(d,i)).join('');
+  document.getElementById('stat-total').textContent = DATA.length;
+  applyFilters();
+  updateProgress();
+}
+
+function updateProgress() {
+  const total = DATA.length;
+  const completed = Object.values(completedItems).filter(v => v === true).length;
+  const percent = Math.round((completed / total) * 100);
+  document.getElementById('stat-completed').textContent = completed;
+  document.getElementById('progress-percent').textContent = percent + '%';
+  document.getElementById('progress-fill').style.width = percent + '%';
+}
+
+function applyFilters() {
+  let count = 0;
+  DATA.forEach((d, i) => {
+    const card = document.getElementById('card-' + i);
+    const pillarMatch = activeFilter === 'all' || d.pillar === activeFilter;
+    const tierMatch = activeTier === 'all' || d.tier === activeTier;
+    const searchMatch = searchTerm === '' || d.hook.toLowerCase().includes(searchTerm) || (d.series && d.series.toLowerCase().includes(searchTerm));
+    const completedMatch = !hideCompleted || completedItems[i] !== true;
+    if (pillarMatch && tierMatch && searchMatch && completedMatch) {
+      card.classList.remove('hidden');
+      count++;
+    } else {
+      card.classList.add('hidden');
+    }
+  });
+  document.getElementById('stat-showing').textContent = count;
+  const empty = document.getElementById('empty');
+  empty.classList.toggle('visible', count === 0);
+}
+
+function setFilter(val, btn) {
+  activeFilter = val;
+  document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  applyFilters();
+}
+
+function setTier(val, btn) {
+  if (activeTier === val) {
+    activeTier = 'all';
+    btn.classList.remove('active');
+  } else {
+    activeTier = val;
+    document.querySelectorAll('[data-tier]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  applyFilters();
+}
+
+function doSearch(val) {
+  searchTerm = val.toLowerCase();
+  applyFilters();
+}
+
+function toggleCard(i) {
+  const card = document.getElementById('card-' + i);
+  card.classList.toggle('open');
+}
+
+render();
+</script>
+</body>
+</html>
