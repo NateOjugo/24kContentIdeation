@@ -195,6 +195,26 @@ export async function fetchShockValueFacts(
   return (data as ShockValueFact[]) ?? [];
 }
 
+/** Below this many seeded rows in either pipeline table, a niche is thin enough
+ *  that generation is mostly running on the model's own invention. Distinct from
+ *  the template-broadening trigger, which fires only at zero — this is a softer
+ *  "you should know" warning, not a behaviour change. */
+export const THIN_NICHE_THRESHOLD = 5;
+
+export type NicheSeedCounts = { sixPowerWords: number; shockFacts: number };
+
+export async function fetchNicheSeedCounts(
+  supabase: SupabaseClient,
+  niche: string
+): Promise<NicheSeedCounts> {
+  const n = normalizeNiche(niche);
+  const [spw, svf] = await Promise.all([
+    supabase.from("six_power_words").select("*", { count: "exact", head: true }).contains("niche", [n]),
+    supabase.from("shock_value_facts").select("*", { count: "exact", head: true }).eq("niche", n),
+  ]);
+  return { sixPowerWords: spw.count ?? 0, shockFacts: svf.count ?? 0 };
+}
+
 /** Below this many placeholder templates, a format falls back to admitting
  *  finished one-liners. Scaffolds rewrite into the 24K voice; finished lines
  *  mostly do not, so they are a fallback rather than a peer. */
@@ -326,6 +346,82 @@ export function hookTemplateCandidatesBlock(opts: {
   }
 
   return { text: parts.join("\n"), validLabels };
+}
+
+/** Steps 2 and 3 self-report inside a single generation call, so the 80-point gate
+ *  is honour-system. This reads back what the model claimed it used and checks it
+ *  against the bank. Visibility only — never blocks. */
+export function parseShockFactsUsed(draft: string): { fact: string; score: number | null }[] {
+  const lines = draft.split("\n");
+  const start = lines.findIndex((l) => /^SHOCK VALUE FACTS USED:/i.test(l.trim()));
+  if (start === -1) return [];
+
+  // The value may sit inline on the label line, or as bullets beneath it.
+  const collected = [lines[start].replace(/^\s*SHOCK VALUE FACTS USED:/i, "")];
+  for (let i = start + 1; i < lines.length; i++) {
+    const l = lines[i];
+    if (/^\s*[A-Z][A-Z0-9 ()/'-]{2,}:/.test(l) || l.trim().startsWith("===")) break;
+    collected.push(l);
+  }
+
+  const out: { fact: string; score: number | null }[] = [];
+  for (const raw of collected) {
+    const line = raw.replace(/^\s*[-*•]\s*/, "").trim();
+    if (!line) continue;
+    // The score is not reliably at end of line — real output includes trailing
+    // commentary ("… (92) — the anchor fact") and annotated scores ("(85, original)").
+    const m = line.match(/\((\d{1,3})(?:\s*,[^)]*)?\)/);
+    // Only scored lines are citations. Unscored lines in this block are prose the
+    // model wrapped around its list, and treating them as facts produced false
+    // positives against real drafts.
+    if (!m) continue;
+    const fact = line
+      .slice(0, m.index)
+      .replace(/^(?:Original candidate|Generated|New)\s*:\s*/i, "")
+      .replace(/^["“']+|["”']+$/g, "")
+      .trim();
+    if (fact.length > 8) out.push({ fact, score: Number(m[1]) });
+  }
+  return out;
+}
+
+/** Two signals only, both unambiguous: a self-reported score under the gate, and a
+ *  score that contradicts the bank row it matches.
+ *
+ *  Deliberately does NOT flag "invented" facts. Step 2 legitimately generates and
+ *  scores its own material when a niche is thin, so absence from the bank is the
+ *  documented fallback, not a violation — flagging it would fire on every business
+ *  and mindset generation and train the reader to ignore the warning.
+ *
+ *  `bank` holds only the 80+ rows the model was actually shown, so a mismatch
+ *  against a sub-80 row it never saw is out of scope. */
+export function validateShockFacts(
+  used: { fact: string; score: number | null }[],
+  bank: ShockValueFact[]
+): string[] {
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const warnings: string[] = [];
+
+  for (const u of used) {
+    const un = norm(u.fact);
+    if (!un) continue;
+    const match = bank.find((r) => {
+      const rn = norm(r.fact);
+      return rn === un || rn.includes(un) || un.includes(rn);
+    });
+
+    if (u.score != null && u.score < SHOCK_VALUE_GATE) {
+      warnings.push(
+        `used a fact scoring ${u.score}, below the ${SHOCK_VALUE_GATE} gate: "${u.fact.slice(0, 90)}"`
+      );
+    }
+    if (match && u.score != null && u.score !== match.shock_score) {
+      warnings.push(
+        `score mismatch: cited ${u.score}, bank says ${match.shock_score} for "${u.fact.slice(0, 70)}"`
+      );
+    }
+  }
+  return warnings;
 }
 
 /** TEMPLATE USED is provenance, so an uncheckable claim is worse than none.

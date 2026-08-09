@@ -6,9 +6,12 @@ import { createClient } from "@/lib/supabase/client";
 import {
   fetchPowerWordsForNiche,
   fetchMetaphorsForNiche,
+  fetchNicheSeedCounts,
   groupPowerWordsByFn,
+  THIN_NICHE_THRESHOLD,
   type HookFormatTemplate,
   type Metaphor,
+  type NicheSeedCounts,
   type PowerWord,
 } from "@/lib/hooksBank";
 import {
@@ -77,6 +80,7 @@ export function HooksGenerateForm({ hookFormatTemplates }: { hookFormatTemplates
   const [loadingBank, setLoadingBank] = useState(false);
   const [powerWords, setPowerWords] = useState<PowerWord[]>([]);
   const [metaphors, setMetaphors] = useState<Metaphor[]>([]);
+  const [seedCounts, setSeedCounts] = useState<NicheSeedCounts | null>(null);
   const [selectedWordIds, setSelectedWordIds] = useState<Set<string>>(new Set());
   const [selectedMetaphorId, setSelectedMetaphorId] = useState<string | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
@@ -93,12 +97,14 @@ export function HooksGenerateForm({ hookFormatTemplates }: { hookFormatTemplates
     setLoadingBank(true);
     setError(null);
     try {
-      const [words, metas] = await Promise.all([
+      const [words, metas, counts] = await Promise.all([
         fetchPowerWordsForNiche(supabase, niche),
         fetchMetaphorsForNiche(supabase, niche),
+        fetchNicheSeedCounts(supabase, niche),
       ]);
       setPowerWords(words);
       setMetaphors(metas);
+      setSeedCounts(counts);
       setBankLoaded(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -228,6 +234,23 @@ export function HooksGenerateForm({ hookFormatTemplates }: { hookFormatTemplates
       >
         {loadingBank ? "Searching the bank…" : "Find Matching Bank Material"}
       </button>
+
+      {bankLoaded && seedCounts && (seedCounts.sixPowerWords < THIN_NICHE_THRESHOLD || seedCounts.shockFacts < THIN_NICHE_THRESHOLD) && (
+        <div className="rounded-[3px] border border-gold/40 bg-gold/8 p-4">
+          <div className="micro-label mb-1">Thin data for &ldquo;{niche.trim().toLowerCase()}&rdquo;</div>
+          <p className="text-xs text-steel">
+            Six Power Words: <span className={seedCounts.sixPowerWords < THIN_NICHE_THRESHOLD ? "text-gold" : "text-cream"}>{seedCounts.sixPowerWords}</span>
+            {" · "}
+            Shock Value Facts: <span className={seedCounts.shockFacts < THIN_NICHE_THRESHOLD ? "text-gold" : "text-cream"}>{seedCounts.shockFacts}</span>
+            {" "}(want {THIN_NICHE_THRESHOLD}+ each).
+          </p>
+          <p className="mt-1.5 text-xs text-steel">
+            The pipeline will invent and self-score its own material for the thin steps instead of drawing on
+            proven rows, so check Step 2 and Step 4a in the output before trusting them.
+            {seedCounts.sixPowerWords === 0 && seedCounts.shockFacts === 0 && " Template candidates will also broaden to generic rows."}
+          </p>
+        </div>
+      )}
 
       {bankLoaded && (
         <div className="space-y-4 rounded-[3px] border border-white/8 bg-black/20 p-4">

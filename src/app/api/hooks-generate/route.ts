@@ -23,6 +23,8 @@ import {
   hookTemplateCandidatesBlock,
   dedupeAgainstLibrary,
   verifyTemplateCitation,
+  parseShockFactsUsed,
+  validateShockFacts,
   type PowerWord,
   type Metaphor,
   type HookFormatTemplate,
@@ -180,6 +182,17 @@ export async function POST(req: Request) {
 
   draft = verifyTemplateCitation(draft, templateCandidates.validLabels);
 
+  // Steps 2/3 self-report inside one call, so the 80-point gate is honour-system.
+  // Read back what the model claimed and flag anything that contradicts the bank.
+  // Visibility only — a generation is never blocked on this.
+  const shockWarnings = validateShockFacts(parseShockFactsUsed(draft), shockFacts);
+  if (shockWarnings.length) {
+    console.warn(
+      "[hooks-generate] shock value gate warnings",
+      JSON.stringify({ niche, hookFormat, warnings: shockWarnings })
+    );
+  }
+
   const { data, error: insertError } = await supabase
     .from("scripts")
     .insert({
@@ -202,5 +215,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: `Draft generated but save failed: ${insertError.message}`, draft }, { status: 500 });
   }
 
-  return NextResponse.json({ id: data.id });
+  return NextResponse.json({ id: data.id, shockWarnings });
 }
